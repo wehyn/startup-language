@@ -962,7 +962,7 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "parser" && (
-                    <div className="startup-panel-enter h-full min-h-0">
+                    <div className="startup-panel-enter flex h-full min-h-0 flex-col">
                       <div className="mb-2 flex items-center justify-end">
                         {pipeline.parserTrace.length > 5 && (
                           <button
@@ -974,30 +974,32 @@ export function StartupCompilerApp() {
                           </button>
                         )}
                       </div>
-                      <ParserTracePanel
-                        trace={parserTraceVisible}
-                        activeIndex={parserStepIndexVisible}
-                        onSelect={(index) => {
-                          const actualIndex = index + parserVisibleOffset;
-                          setParserStepIndex(actualIndex);
-                          const step = pipeline.parserTrace[actualIndex];
-                          if (!step) {
-                            return;
-                          }
-
-                          if (step.nodeId) {
-                            const targetNode = pipeline.nodeById[step.nodeId];
-                            if (targetNode) {
-                              setSelectedLine(targetNode.line);
+                      <div className="min-h-0 flex-1">
+                        <ParserTracePanel
+                          trace={parserTraceVisible}
+                          activeIndex={parserStepIndexVisible}
+                          onSelect={(index) => {
+                            const actualIndex = index + parserVisibleOffset;
+                            setParserStepIndex(actualIndex);
+                            const step = pipeline.parserTrace[actualIndex];
+                            if (!step) {
+                              return;
                             }
-                            setSelectedAstNodeId(step.nodeId);
-                          } else {
-                            setSelectedAstNodeId(null);
-                          }
 
-                          setSelectedTokenIndex(step.startToken);
-                        }}
-                      />
+                            if (step.nodeId) {
+                              const targetNode = pipeline.nodeById[step.nodeId];
+                              if (targetNode) {
+                                setSelectedLine(targetNode.line);
+                              }
+                              setSelectedAstNodeId(step.nodeId);
+                            } else {
+                              setSelectedAstNodeId(null);
+                            }
+
+                            setSelectedTokenIndex(step.startToken);
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -1110,7 +1112,7 @@ export function StartupCompilerApp() {
                       </div>
 
                       <div className="min-h-0 flex-1">
-                        <div className="min-h-0 rounded-xl border border-white/10 bg-black/20 p-2">
+                        <div className="h-full min-h-0 overflow-hidden rounded-xl border border-white/10 bg-black/20 p-2">
                           {statePaneTab === "cap" && (
                             <div className="h-full min-h-0 overflow-auto">
                               <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
@@ -1149,34 +1151,42 @@ export function StartupCompilerApp() {
                             </div>
                           )}
 
-                          {statePaneTab === "scope" && <ScopePanel scopes={activeStep?.scopes ?? []} />}
+                          {statePaneTab === "scope" && (
+                            <div className="h-full min-h-0 overflow-auto">
+                              <ScopePanel scopes={activeStep?.scopes ?? []} />
+                            </div>
+                          )}
 
                           {statePaneTab === "types" && (
-                            <TypeCheckPanel
-                              embedded
-                              view="types"
-                              entries={pipeline.semantic.entries}
-                              issues={pipeline.semantic.issues}
-                              logs={pipeline.semantic.logs}
-                              onIssueSelect={(line, column) => {
-                                focusSourceLocation(line, column);
-                                setBottomTab("tokens");
-                              }}
-                            />
+                            <div className="h-full min-h-0 overflow-auto">
+                              <TypeCheckPanel
+                                embedded
+                                view="types"
+                                entries={pipeline.semantic.entries}
+                                issues={pipeline.semantic.issues}
+                                logs={pipeline.semantic.logs}
+                                onIssueSelect={(line, column) => {
+                                  focusSourceLocation(line, column);
+                                  setBottomTab("tokens");
+                                }}
+                              />
+                            </div>
                           )}
 
                           {statePaneTab === "explain" && (
-                            <TypeCheckPanel
-                              embedded
-                              view="logs"
-                              entries={pipeline.semantic.entries}
-                              issues={pipeline.semantic.issues}
-                              logs={pipeline.semantic.logs}
-                              onIssueSelect={(line, column) => {
-                                focusSourceLocation(line, column);
-                                setBottomTab("tokens");
-                              }}
-                            />
+                            <div className="h-full min-h-0 overflow-auto">
+                              <TypeCheckPanel
+                                embedded
+                                view="logs"
+                                entries={pipeline.semantic.entries}
+                                issues={pipeline.semantic.issues}
+                                logs={pipeline.semantic.logs}
+                                onIssueSelect={(line, column) => {
+                                  focusSourceLocation(line, column);
+                                  setBottomTab("tokens");
+                                }}
+                              />
+                            </div>
                           )}
                         </div>
                       </div>

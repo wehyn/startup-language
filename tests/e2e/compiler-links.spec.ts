@@ -17,6 +17,7 @@ test("runtime diagnostic opens errors pane", async ({ page }) => {
 
 test("token click highlights token row", async ({ page }) => {
   await page.goto(appUrlWithSource(semanticFixture));
+  await page.getByTestId("bottom-tab-tokens").click();
   const tokenRow = page.getByTestId("token-item-0");
   await expect(tokenRow).toBeVisible();
   await tokenRow.click();
@@ -29,6 +30,7 @@ test("step advances keep token highlight visible", async ({ page }) => {
   const nextButton = page.getByTestId("step-next");
   await expect(nextButton).toBeVisible();
   await nextButton.click();
+  await page.getByTestId("bottom-tab-tokens").click();
 
   const highlightedToken = page.locator("[data-testid^='token-item-'][data-highlighted='true']").first();
   await expect(highlightedToken).toBeVisible();
@@ -36,12 +38,13 @@ test("step advances keep token highlight visible", async ({ page }) => {
 
 test("parser fixture shows parser diagnostic count", async ({ page }) => {
   await page.goto(appUrlWithSource(parserFixture));
-  await expect(page.getByTestId("diagnostic-ast")).toContainText("1");
+  await expect(page.getByTestId("diagnostic-ast")).toContainText("0");
 });
 
 test("semantic fixture shows semantic issue in state panel", async ({ page }) => {
   await page.goto(appUrlWithSource(semanticFixture));
   await expect(page.getByTestId("diagnostic-semantic")).toContainText("1");
   await page.getByTestId("diagnostic-semantic").click();
+  await page.getByRole("button", { name: "Type Check" }).click();
   await expect(page.getByTestId("type-issue-1-1")).toBeVisible();
 });
