@@ -127,7 +127,7 @@ export function StartupCompilerApp() {
   const [stepIndex, setStepIndex] = useState(0);
   const [activeHeaderTab, setActiveHeaderTab] = useState<"pipeline" | "quick">("pipeline");
   const [bottomTab, setBottomTab] = useState<
-    "tokens" | "types" | "parser" | "logs" | "output" | "state"
+    "tokens" | "parser" | "logs" | "output" | "state"
   >("tokens");
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
@@ -510,11 +510,10 @@ export function StartupCompilerApp() {
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   {[
                     { id: "tokens", label: "Tokenized Assets" },
-                    { id: "types", label: "Type Check" },
                     { id: "parser", label: "Parser Mode" },
                     { id: "logs", label: "Investor Updates" },
                     { id: "output", label: "Traction" },
-                    { id: "state", label: "Cap Table" },
+                    { id: "state", label: "State" },
                   ].map((tab) => {
                     const active = bottomTab === tab.id;
                     return (
@@ -545,18 +544,6 @@ export function StartupCompilerApp() {
                       onTokenClick={(tokenIndex) => {
                         setSelectedTokenIndex(tokenIndex);
                         setSelectedAstNodeId(null);
-                      }}
-                    />
-                  )}
-
-                  {bottomTab === "types" && (
-                    <TypeCheckPanel
-                      embedded
-                      entries={pipeline.semantic.entries}
-                      issues={pipeline.semantic.issues}
-                      onIssueSelect={(line, column) => {
-                        focusSourceLocation(line, column);
-                        setBottomTab("tokens");
                       }}
                     />
                   )}
@@ -629,33 +616,48 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "state" && (
-                    <div className="h-full min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
-                      <table className="w-full text-left font-mono text-xs text-zinc-100">
-                        <thead className="border-b border-white/10 text-zinc-400">
-                          <tr>
-                            <th className="px-2 py-1">Name</th>
-                            <th className="px-2 py-1">Type</th>
-                            <th className="px-2 py-1">Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeStep ? (
-                            Object.entries(activeStep.variables).map(([name, info]) => (
-                              <tr key={name} className="border-b border-white/5 last:border-0">
-                                <td className="px-2 py-1">{name}</td>
-                                <td className="px-2 py-1">{info.type}</td>
-                                <td className="px-2 py-1">{String(info.value)}</td>
-                              </tr>
-                            ))
-                          ) : (
+                    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-2">
+                      <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
+                        <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                          Runtime Cap Table
+                        </div>
+                        <table className="w-full text-left font-mono text-xs text-zinc-100">
+                          <thead className="border-b border-white/10 text-zinc-400">
                             <tr>
-                              <td className="px-2 py-2 text-zinc-500" colSpan={3}>
-                                No variables yet
-                              </td>
+                              <th className="px-2 py-1">Name</th>
+                              <th className="px-2 py-1">Type</th>
+                              <th className="px-2 py-1">Value</th>
                             </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {activeStep ? (
+                              Object.entries(activeStep.variables).map(([name, info]) => (
+                                <tr key={name} className="border-b border-white/5 last:border-0">
+                                  <td className="px-2 py-1">{name}</td>
+                                  <td className="px-2 py-1">{info.type}</td>
+                                  <td className="px-2 py-1">{String(info.value)}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td className="px-2 py-2 text-zinc-500" colSpan={3}>
+                                  No variables yet
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <TypeCheckPanel
+                        embedded
+                        entries={pipeline.semantic.entries}
+                        issues={pipeline.semantic.issues}
+                        onIssueSelect={(line, column) => {
+                          focusSourceLocation(line, column);
+                          setBottomTab("tokens");
+                        }}
+                      />
                     </div>
                   )}
                 </div>

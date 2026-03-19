@@ -66,7 +66,7 @@ body {
 }
 
 .startup-shell {
-  background: radial-gradient(120% 100% at 12% 0%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 52%),
+  background: radial-gradient(120% 100% at 50% 45%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 52%),
     linear-gradient(150deg, #0b0b0b 0%, #030303 62%, #000000 100%);
 }
 
