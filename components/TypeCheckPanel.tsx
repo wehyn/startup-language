@@ -99,6 +99,7 @@ export function TypeCheckPanel({
                   key={`${issue.message}-${issue.line}-${issue.column}`}
                   type="button"
                   onClick={() => onIssueSelect?.(issue.line, issue.column)}
+                  data-testid={`type-issue-${issue.line}-${issue.column}`}
                   className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-left text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
                 >
                   <span>{issue.message}</span>

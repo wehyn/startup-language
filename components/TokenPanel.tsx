@@ -160,6 +160,10 @@ export function TokenPanel({
                     onMouseLeave={() => onTokenHover(null)}
                     onClick={() => onTokenClick?.(index)}
                     aria-disabled={!onTokenClick}
+                    data-testid={`token-item-${index}`}
+                    data-token-index={index}
+                    data-highlighted={isHighlighted ? "true" : "false"}
+                    data-error={isError ? "true" : "false"}
                   >
                     <span className="text-zinc-500">[{token.type}]</span>
                     <span className={tokenColorClass(token.type)}>{token.value}</span>
