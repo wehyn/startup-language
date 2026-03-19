@@ -12,7 +12,7 @@ import { TokenPanel } from "@/components/TokenPanel";
 import { TypeCheckPanel } from "@/components/TypeCheckPanel";
 import { PRELOADED_DEMO } from "@/lib/startup/demo";
 import { executeAst } from "@/lib/startup/executor";
-import { ParserTraceStep, parseTokensToAstWithTrace } from "@/lib/startup/parser";
+import { ParserError, ParserTraceStep, parseTokensToAstWithTrace } from "@/lib/startup/parser";
 import { AstNodeData, buildReactFlowGraph } from "@/lib/startup/reactflow";
 import { analyzeSemantics, SemanticResult } from "@/lib/startup/semantic";
 import { nextStep, prevStep, stepAt } from "@/lib/startup/timeline";
@@ -33,6 +33,8 @@ type PipelineResult = {
   errorNodeIds: string[];
   errorLine: number | null;
   errorColumn: number | null;
+  errorStartToken: number | null;
+  errorEndToken: number | null;
   errorStage: "source" | "tokens" | "ast" | "execution";
   error: string | null;
 };
@@ -266,6 +268,8 @@ export function StartupCompilerApp() {
       errorNodeIds: [],
       errorLine: null,
       errorColumn: null,
+      errorStartToken: null,
+      errorEndToken: null,
       errorStage: "source",
       error: null,
     };
@@ -306,11 +310,22 @@ export function StartupCompilerApp() {
       const message = error instanceof Error ? error.message : "Unknown compiler error";
       result.error = message;
 
-      const { line, column } = parseLineColumnFromError(message);
-      result.errorLine = line;
-      result.errorColumn = column;
-      result.errorTokenIndexes = findErrorTokenIndexes(result.tokens, line, column);
-      result.errorNodeIds = findErrorNodeIds(result.ast, line);
+      if (error instanceof ParserError) {
+        result.errorLine = error.line;
+        result.errorColumn = error.column;
+        result.errorStartToken = error.startToken;
+        result.errorEndToken = error.endToken;
+        result.errorTokenIndexes = result.tokens
+          .map((_token, index) => index)
+          .filter((index) => index >= error.startToken && index <= error.endToken);
+        result.errorNodeIds = findErrorNodeIds(result.ast, error.line);
+      } else {
+        const { line, column } = parseLineColumnFromError(message);
+        result.errorLine = line;
+        result.errorColumn = column;
+        result.errorTokenIndexes = findErrorTokenIndexes(result.tokens, line, column);
+        result.errorNodeIds = findErrorNodeIds(result.ast, line);
+      }
     }
 
     return result;
@@ -333,6 +348,30 @@ export function StartupCompilerApp() {
 
     const nodeIds = findErrorNodeIds(pipeline.ast, line);
     setSelectedAstNodeId(nodeIds.length > 0 ? nodeIds[0] : null);
+  };
+
+  const focusErrorByStage = (stage: "tokens" | "ast" | "semantic" | "execution") => {
+    if (stage === "semantic" && pipeline.semantic.issues.length > 0) {
+      const issue = pipeline.semantic.issues[0];
+      focusSourceLocation(issue.line, issue.column);
+      setBottomTab("state");
+      return;
+    }
+
+    if (stage === "execution") {
+      setBottomTab("runtime");
+      setRuntimeTab("errors");
+      if (pipeline.errorLine !== null) {
+        focusSourceLocation(pipeline.errorLine, pipeline.errorColumn);
+      }
+      return;
+    }
+
+    if (pipeline.errorLine !== null) {
+      focusSourceLocation(pipeline.errorLine, pipeline.errorColumn);
+    }
+
+    setBottomTab(stage === "ast" ? "parser" : "tokens");
   };
 
   const mappedErrors = useMemo(() => {
@@ -383,6 +422,7 @@ export function StartupCompilerApp() {
 
     setSelectedAstNodeId(null);
     setSelectedTokenIndex(null);
+
     setStepIndex(pipeline.timeline.length - 1);
   };
 
@@ -394,11 +434,15 @@ export function StartupCompilerApp() {
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
+        setSelectedAstNodeId(null);
+        setSelectedTokenIndex(null);
         setStepIndex((current) => prevStep(pipeline.timeline, current));
       }
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
+        setSelectedAstNodeId(null);
+        setSelectedTokenIndex(null);
         setStepIndex((current) => nextStep(pipeline.timeline, current));
       }
     };
@@ -491,6 +535,33 @@ export function StartupCompilerApp() {
     setParserStepIndex(parserIndexForTimeline);
   }, [parserIndexForTimeline]);
 
+  const diagnostics = [
+    {
+      id: "tokens" as const,
+      label: "Tokenizer",
+      count: pipeline.errorStage === "tokens" && pipeline.error ? 1 : 0,
+      tone: "border-amber-300/40 text-amber-200",
+    },
+    {
+      id: "ast" as const,
+      label: "Parser",
+      count: pipeline.errorStage === "ast" && pipeline.error ? 1 : 0,
+      tone: "border-sky-300/40 text-sky-200",
+    },
+    {
+      id: "semantic" as const,
+      label: "Semantic",
+      count: pipeline.semantic.issues.length,
+      tone: "border-fuchsia-300/40 text-fuchsia-200",
+    },
+    {
+      id: "execution" as const,
+      label: "Runtime",
+      count: pipeline.errorStage === "execution" && pipeline.error ? 1 : 0,
+      tone: "border-rose-300/40 text-rose-200",
+    },
+  ];
+
   return (
     <div className="startup-shell relative h-[100dvh] overflow-hidden bg-[#090A0D] px-5 py-5 text-white selection:bg-white/20">
       <div className="relative mx-auto flex h-full min-h-0 max-w-[1500px] flex-col gap-4">
@@ -500,6 +571,7 @@ export function StartupCompilerApp() {
               <button
                 type="button"
                 onClick={() => setActiveHeaderTab("pipeline")}
+                data-testid="header-tab-pipeline"
                 className={`startup-tab-btn rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
                   activeHeaderTab === "pipeline" ? "active" : ""
                 }`}
@@ -509,6 +581,7 @@ export function StartupCompilerApp() {
               <button
                 type="button"
                 onClick={() => setActiveHeaderTab("quick")}
+                data-testid="header-tab-quick"
                 className={`startup-tab-btn rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
                   activeHeaderTab === "quick" ? "active" : ""
                 }`}
@@ -527,7 +600,30 @@ export function StartupCompilerApp() {
               onPrev={handlePrev}
               onNext={handleNext}
               onRunCode={handleRunCode}
+              onScrub={(index) => {
+                setStepIndex(index);
+                setSelectedTokenIndex(null);
+                setSelectedAstNodeId(null);
+              }}
             />
+
+            <div className="startup-island rounded-2xl px-3 py-2 backdrop-blur-[10px]">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Diagnostics</div>
+              <div className="flex flex-wrap gap-2">
+                {diagnostics.map((diag) => (
+                  <button
+                    key={diag.id}
+                    type="button"
+                    onClick={() => focusErrorByStage(diag.id)}
+                    data-testid={`diagnostic-${diag.id}`}
+                    className={`rounded border bg-white/5 px-2 py-1 font-mono text-[11px] transition hover:bg-white/10 ${diag.tone}`}
+                  >
+                    <span className="mr-1 text-zinc-500">{diag.label}</span>
+                    <span>{diag.count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4 startup-gap">
               <div className="relative grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
@@ -576,6 +672,7 @@ export function StartupCompilerApp() {
                         key={tab.id}
                         type="button"
                         onClick={() => setBottomTab(tab.id as typeof bottomTab)}
+                        data-testid={`bottom-tab-${tab.id}`}
                         className={`startup-tab-btn rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${active ? "active" : ""}`}
                       >
                         {tab.label}
@@ -643,6 +740,7 @@ export function StartupCompilerApp() {
                               key={tab.id}
                               type="button"
                               onClick={() => setRuntimeTab(tab.id as typeof runtimeTab)}
+                              data-testid={`runtime-tab-${tab.id}`}
                               className={`startup-tab-btn rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${active ? "active" : ""}`}
                             >
                               {tab.label}
@@ -686,6 +784,7 @@ export function StartupCompilerApp() {
                                     focusSourceLocation(entry.line, entry.column);
                                     setBottomTab("tokens");
                                   }}
+                                  data-testid={`runtime-error-${entry.kind}-${entry.line}-${entry.column ?? 0}`}
                                   className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1.5 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
                                 >
                                   <div className="grid grid-cols-[minmax(0,1fr)_56px_auto] items-center gap-2">

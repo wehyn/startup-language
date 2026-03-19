@@ -20,6 +20,28 @@ export type ParserTraceStep = {
   nodeId?: string;
 };
 
+export class ParserError extends Error {
+  readonly line: number;
+
+  readonly column: number;
+
+  readonly startToken: number;
+
+  readonly endToken: number;
+
+  constructor(
+    message: string,
+    details: { line: number; column: number; startToken: number; endToken?: number },
+  ) {
+    super(message);
+    this.name = "ParserError";
+    this.line = details.line;
+    this.column = details.column;
+    this.startToken = details.startToken;
+    this.endToken = details.endToken ?? details.startToken;
+  }
+}
+
 class Parser {
   private readonly tokens: Token[];
 
@@ -477,13 +499,24 @@ class Parser {
 
     if (token.type !== type || (value !== undefined && token.value !== value)) {
       if (type === "DELIMITER" && value === "?") {
-        throw new Error(
+        throw new ParserError(
           `Missing '?' at end of previous statement before '${token.value}' at ${token.line}:${token.column}`,
+          {
+            line: token.line,
+            column: token.column,
+            startToken: Math.max(0, this.position - 1),
+            endToken: this.position,
+          },
         );
       }
 
-      throw new Error(
+      throw new ParserError(
         `Expected ${value ?? type}, found '${token.value}' at ${token.line}:${token.column}`,
+        {
+          line: token.line,
+          column: token.column,
+          startToken: this.position,
+        },
       );
     }
 
