@@ -213,8 +213,11 @@ export function StartupCompilerApp() {
   const [activeHeaderTab, setActiveHeaderTab] = useState<"pipeline" | "quick">("pipeline");
   const [bottomTab, setBottomTab] = useState<
     "tokens" | "parser" | "runtime" | "state" | "ir"
-  >("tokens");
+  >("runtime");
   const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
+  const [statePaneTab, setStatePaneTab] = useState<"cap" | "scope" | "types" | "explain">("cap");
+  const [diagnosticsExpanded, setDiagnosticsExpanded] = useState(false);
+  const [parserShowAll, setParserShowAll] = useState(false);
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
@@ -711,6 +714,31 @@ export function StartupCompilerApp() {
     return byLine.length > 0 ? byLine[byLine.length - 1] : 0;
   }, [activeStep, pipeline.parserTrace]);
 
+  const parserVisibleOffset = useMemo(() => {
+    if (parserShowAll || pipeline.parserTrace.length <= 5) {
+      return 0;
+    }
+
+    return pipeline.parserTrace.length - 5;
+  }, [parserShowAll, pipeline.parserTrace.length]);
+
+  const parserTraceVisible = useMemo(() => {
+    if (parserShowAll || pipeline.parserTrace.length <= 5) {
+      return pipeline.parserTrace;
+    }
+
+    return pipeline.parserTrace.slice(-5);
+  }, [parserShowAll, pipeline.parserTrace]);
+
+  const parserStepIndexVisible = useMemo(() => {
+    const relative = parserStepIndex - parserVisibleOffset;
+    if (relative < 0) {
+      return 0;
+    }
+
+    return Math.min(relative, Math.max(0, parserTraceVisible.length - 1));
+  }, [parserStepIndex, parserVisibleOffset, parserTraceVisible.length]);
+
   useEffect(() => {
     setParserStepIndex(parserIndexForTimeline);
   }, [parserIndexForTimeline]);
@@ -809,25 +837,29 @@ export function StartupCompilerApp() {
               onPrev={handlePrev}
               onNext={handleNext}
               onRunCode={handleRunCode}
-              onScrub={(index) => {
-                setStepIndex(index);
-                setSelectedTokenIndex(null);
-                setSelectedAstNodeId(null);
-              }}
             />
 
             <div className="startup-island rounded-2xl px-3 py-2 backdrop-blur-[10px]">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Diagnostics</div>
-                <button
-                  type="button"
-                  onClick={jumpToNextIssue}
-                  className="rounded border border-white/15 bg-white/5 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-300 transition hover:bg-white/10"
-                >
-                  Next Issue (Alt+N)
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDiagnosticsExpanded((current) => !current)}
+                    className="startup-tab-btn rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
+                  >
+                    {diagnosticsExpanded ? "Hide details" : "Show details"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={jumpToNextIssue}
+                    className="rounded border border-white/15 bg-white/5 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-300 transition hover:bg-white/10"
+                  >
+                    Next Issue (Alt+N)
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="sticky top-0 z-10 flex flex-wrap gap-2 rounded-lg bg-black/20 p-1">
                 {diagnostics.map((diag) => (
                   <button
                     key={diag.id}
@@ -840,12 +872,19 @@ export function StartupCompilerApp() {
                       <span className="mr-1 text-zinc-500">{diag.label}</span>
                       <span>{diag.count}</span>
                     </div>
-                    <div className="max-w-[260px] truncate font-mono text-[10px] text-zinc-400">
-                      {diag.preview}
-                    </div>
                   </button>
                 ))}
               </div>
+              {diagnosticsExpanded && (
+                <div className="mt-2 space-y-1 rounded-xl border border-white/10 bg-black/25 p-2 font-mono text-[11px] text-zinc-300">
+                  {diagnostics.map((diag) => (
+                    <div key={`detail-${diag.id}`} className="rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                      <span className="mr-2 text-zinc-500">[{diag.label}]</span>
+                      <span>{diag.preview}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4 startup-gap">
@@ -883,11 +922,11 @@ export function StartupCompilerApp() {
               <div className="startup-island startup-roomy-sm flex min-h-0 flex-col rounded-2xl p-3 backdrop-blur-[10px]">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   {[
-                    { id: "tokens", label: "Tokenized Assets" },
-                    { id: "parser", label: "Parser Mode" },
-                    { id: "runtime", label: "Runtime" },
-                    { id: "state", label: "State + Scope" },
-                    { id: "ir", label: "IR + Stack" },
+                    { id: "runtime", label: "Runtime", icon: "▶" },
+                    { id: "tokens", label: "Tokenized Assets", icon: "◆" },
+                    { id: "parser", label: "Parser Mode", icon: "∑" },
+                    { id: "state", label: "State + Scope", icon: "◫" },
+                    { id: "ir", label: "IR + Stack", icon: "⎇" },
                   ].map((tab) => {
                     const active = bottomTab === tab.id;
                     return (
@@ -898,6 +937,7 @@ export function StartupCompilerApp() {
                         data-testid={`bottom-tab-${tab.id}`}
                         className={`startup-tab-btn rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${active ? "active" : ""}`}
                       >
+                        <span className="mr-1 opacity-90">{tab.icon}</span>
                         {tab.label}
                       </button>
                     );
@@ -923,12 +963,24 @@ export function StartupCompilerApp() {
 
                   {bottomTab === "parser" && (
                     <div className="startup-panel-enter h-full min-h-0">
+                      <div className="mb-2 flex items-center justify-end">
+                        {pipeline.parserTrace.length > 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setParserShowAll((current) => !current)}
+                            className="startup-tab-btn rounded px-2 py-1 text-[10px] uppercase tracking-[0.12em]"
+                          >
+                            {parserShowAll ? "Show latest 5" : "Show all"}
+                          </button>
+                        )}
+                      </div>
                       <ParserTracePanel
-                        trace={pipeline.parserTrace}
-                        activeIndex={parserStepIndex}
+                        trace={parserTraceVisible}
+                        activeIndex={parserStepIndexVisible}
                         onSelect={(index) => {
-                          setParserStepIndex(index);
-                          const step = pipeline.parserTrace[index];
+                          const actualIndex = index + parserVisibleOffset;
+                          setParserStepIndex(actualIndex);
+                          const step = pipeline.parserTrace[actualIndex];
                           if (!step) {
                             return;
                           }
@@ -973,7 +1025,7 @@ export function StartupCompilerApp() {
                       </div>
 
                       {runtimeTab === "events" && (
-                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-3 font-mono text-sm text-zinc-100">
                           {executionLog.length > 0
                             ? executionLog
                             : "Run a phase to generate runtime events and execution traces."}
@@ -981,7 +1033,7 @@ export function StartupCompilerApp() {
                       )}
 
                       {runtimeTab === "output" && (
-                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-3 font-mono text-sm text-zinc-100">
                           {terminalOutput.length > 0
                             ? terminalOutput.join("\n")
                             : "No output yet. Use LAUNCH MVP or step through execution to produce output."}
@@ -993,7 +1045,7 @@ export function StartupCompilerApp() {
                           <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
                             Error Arrows
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             {mappedErrors.length === 0 ? (
                               <div className="startup-empty rounded px-2 py-1 font-mono text-xs">
                                 No mapped errors. If parser or semantic issues appear, jump links show up here.
@@ -1008,7 +1060,7 @@ export function StartupCompilerApp() {
                                     setBottomTab("tokens");
                                   }}
                                   data-testid={`runtime-error-${entry.kind}-${entry.line}-${entry.column ?? 0}`}
-                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1.5 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
+                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-2 text-left font-mono text-sm text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
                                 >
                                   <div className="grid grid-cols-[minmax(0,1fr)_56px_auto] items-center gap-2">
                                     <div className="min-w-0 truncate">
@@ -1038,59 +1090,96 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "state" && (
-                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-                      <div className="grid min-h-0 grid-cols-1 gap-3 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
-                          <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                            Runtime Cap Table
-                          </div>
-                          <table className="w-full text-left font-mono text-xs text-zinc-100">
-                            <thead className="border-b border-white/10 text-zinc-400">
-                              <tr>
-                                <th className="px-2 py-1">Name</th>
-                                <th className="px-2 py-1">Type</th>
-                                <th className="px-2 py-1">Value</th>
-                                <th className="px-2 py-1">Lvl</th>
-                                <th className="px-2 py-1">Offset</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {activeStep ? (
-                                symbolRows.map((row) => (
-                                  <tr key={row.name} className="border-b border-white/5 last:border-0">
-                                    <td className="px-2 py-1">{row.name}</td>
-                                    <td className="px-2 py-1">{row.info.type}</td>
-                                    <td className="px-2 py-1">{String(row.info.value)}</td>
-                                    <td className="px-2 py-1 text-zinc-400">{row.level}</td>
-                                    <td className="px-2 py-1 text-zinc-400">{row.offset}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                    <td className="px-2 py-2 text-zinc-500" colSpan={5}>
-                                      No variables yet. Execute at least one step to populate runtime state.
-                                    </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div className="min-h-0 rounded-xl border border-white/10 bg-black/20 p-2">
-                          <ScopePanel scopes={activeStep?.scopes ?? []} />
-                        </div>
+                    <div className="startup-panel-enter flex h-full min-h-0 flex-col gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[
+                          { id: "cap", label: "Cap Table" },
+                          { id: "scope", label: "Scope Stack" },
+                          { id: "types", label: "Type Check" },
+                          { id: "explain", label: "Explainability" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setStatePaneTab(tab.id as typeof statePaneTab)}
+                            className={`startup-tab-btn rounded-md px-2 py-1 text-[10px] uppercase tracking-[0.12em] ${statePaneTab === tab.id ? "active" : ""}`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
 
-                      <TypeCheckPanel
-                        embedded
-                        entries={pipeline.semantic.entries}
-                        issues={pipeline.semantic.issues}
-                        logs={pipeline.semantic.logs}
-                          onIssueSelect={(line, column) => {
-                            focusSourceLocation(line, column);
-                            setBottomTab("tokens");
-                          }}
-                      />
+                      <div className="min-h-0 flex-1">
+                        <div className="min-h-0 rounded-xl border border-white/10 bg-black/20 p-2">
+                          {statePaneTab === "cap" && (
+                            <div className="h-full min-h-0 overflow-auto">
+                              <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                                Runtime Cap Table
+                              </div>
+                              <table className="w-full text-left font-mono text-sm text-zinc-100">
+                                <thead className="border-b border-white/10 text-zinc-500">
+                                  <tr>
+                                    <th className="px-2 py-2">Name</th>
+                                    <th className="px-2 py-2">Type</th>
+                                    <th className="px-2 py-2">Value</th>
+                                    <th className="px-2 py-2">Lvl</th>
+                                    <th className="px-2 py-2">Offset</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {activeStep ? (
+                                    symbolRows.map((row) => (
+                                      <tr key={row.name} className="border-b border-white/5 last:border-0">
+                                        <td className="px-2 py-2">{row.name}</td>
+                                        <td className="px-2 py-2">{row.info.type}</td>
+                                        <td className="px-2 py-2">{String(row.info.value)}</td>
+                                        <td className="px-2 py-2 text-zinc-500">{row.level}</td>
+                                        <td className="px-2 py-2 text-zinc-500">{row.offset}</td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td className="px-2 py-2 text-zinc-500" colSpan={5}>
+                                        No variables yet. Execute at least one step to populate runtime state.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {statePaneTab === "scope" && <ScopePanel scopes={activeStep?.scopes ?? []} />}
+
+                          {statePaneTab === "types" && (
+                            <TypeCheckPanel
+                              embedded
+                              view="types"
+                              entries={pipeline.semantic.entries}
+                              issues={pipeline.semantic.issues}
+                              logs={pipeline.semantic.logs}
+                              onIssueSelect={(line, column) => {
+                                focusSourceLocation(line, column);
+                                setBottomTab("tokens");
+                              }}
+                            />
+                          )}
+
+                          {statePaneTab === "explain" && (
+                            <TypeCheckPanel
+                              embedded
+                              view="logs"
+                              entries={pipeline.semantic.entries}
+                              issues={pipeline.semantic.issues}
+                              logs={pipeline.semantic.logs}
+                              onIssueSelect={(line, column) => {
+                                focusSourceLocation(line, column);
+                                setBottomTab("tokens");
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
