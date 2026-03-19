@@ -476,6 +476,12 @@ class Parser {
     }
 
     if (token.type !== type || (value !== undefined && token.value !== value)) {
+      if (type === "DELIMITER" && value === "?") {
+        throw new Error(
+          `Missing '?' at end of previous statement before '${token.value}' at ${token.line}:${token.column}`,
+        );
+      }
+
       throw new Error(
         `Expected ${value ?? type}, found '${token.value}' at ${token.line}:${token.column}`,
       );

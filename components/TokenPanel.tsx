@@ -44,13 +44,19 @@ export function TokenPanel({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const tokenItemRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
-  const autoScrollTargetIndex = useMemo(() => {
+  const autoScrollTargetRange = useMemo(() => {
     if (highlightedTokenIndexes.length > 0) {
-      return highlightedTokenIndexes[0];
+      return {
+        start: highlightedTokenIndexes[0],
+        end: highlightedTokenIndexes[highlightedTokenIndexes.length - 1],
+      };
     }
 
     if (errorTokenIndexes.length > 0) {
-      return errorTokenIndexes[0];
+      return {
+        start: errorTokenIndexes[0],
+        end: errorTokenIndexes[errorTokenIndexes.length - 1],
+      };
     }
 
     return null;
@@ -70,19 +76,28 @@ export function TokenPanel({
   }, [tokens]);
 
   useEffect(() => {
-    if (autoScrollTargetIndex === null) {
+    if (autoScrollTargetRange === null) {
       return;
     }
 
     const scroller = scrollerRef.current;
-    const item = tokenItemRefs.current[autoScrollTargetIndex];
+    const startItem = tokenItemRefs.current[autoScrollTargetRange.start];
+    const endItem = tokenItemRefs.current[autoScrollTargetRange.end] ?? startItem;
 
-    if (!scroller || !item) {
+    if (!scroller || !startItem || !endItem) {
       return;
     }
 
-    item.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [autoScrollTargetIndex]);
+    const top = startItem.offsetTop;
+    const bottom = endItem.offsetTop + endItem.offsetHeight;
+    const center = (top + bottom) / 2;
+    const targetTop = Math.max(0, center - scroller.clientHeight / 2);
+
+    scroller.scrollTo({
+      top: targetTop,
+      behavior: "smooth",
+    });
+  }, [autoScrollTargetRange]);
 
   return (
     <div
