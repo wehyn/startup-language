@@ -232,8 +232,8 @@ export function StartupCompilerApp() {
     {
       title: "Control Flow",
       items: [
-        "PIVOT: PIVOT (burnRate >>> 1000) [ PITCH \"cut spend\"? ]",
-        "SPRINT: SPRINT (runway <<< 6) [ PITCH \"raise now\"? ]",
+        "PIVOT (if): PIVOT (burnRate >>> 1000) [ PITCH \"cut spend\"? ]",
+        "SPRINT (for): SPRINT (runway <<< 6) [ PITCH \"raise now\"? ]",
       ],
     },
     {
@@ -796,6 +796,16 @@ export function StartupCompilerApp() {
                         return (
                           <li key={item} className="flex flex-wrap items-baseline gap-2">
                             <span className="text-zinc-400">{label}:</span>
+                            {section.title === "Control Flow" && label === "PIVOT (if)" && (
+                              <span className="rounded border border-[#60A5FA]/35 bg-[#60A5FA]/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#93C5FD]">
+                                if
+                              </span>
+                            )}
+                            {section.title === "Control Flow" && label === "SPRINT (for)" && (
+                              <span className="rounded border border-[#60A5FA]/35 bg-[#60A5FA]/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#93C5FD]">
+                                for
+                              </span>
+                            )}
                             {renderPlaybookCode(code)}
                           </li>
                         );
