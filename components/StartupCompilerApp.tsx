@@ -543,47 +543,51 @@ export function StartupCompilerApp() {
 
                 <div className="min-h-0 flex-1">
                   {bottomTab === "tokens" && (
-                    <TokenPanel
-                      embedded
-                      tokens={pipeline.tokens}
-                      highlightedTokenIndexes={highlightedTokenIndexes}
-                      errorTokenIndexes={pipeline.errorTokenIndexes}
-                      onTokenHover={setHoverRange}
-                      onTokenClick={(tokenIndex) => {
-                        setSelectedTokenIndex(tokenIndex);
-                        setSelectedAstNodeId(null);
-                      }}
-                    />
+                    <div className="startup-panel-enter h-full min-h-0">
+                      <TokenPanel
+                        embedded
+                        tokens={pipeline.tokens}
+                        highlightedTokenIndexes={highlightedTokenIndexes}
+                        errorTokenIndexes={pipeline.errorTokenIndexes}
+                        onTokenHover={setHoverRange}
+                        onTokenClick={(tokenIndex) => {
+                          setSelectedTokenIndex(tokenIndex);
+                          setSelectedAstNodeId(null);
+                        }}
+                      />
+                    </div>
                   )}
 
                   {bottomTab === "parser" && (
-                    <ParserTracePanel
-                      trace={pipeline.parserTrace}
-                      activeIndex={parserStepIndex}
-                      onSelect={(index) => {
-                        setParserStepIndex(index);
-                        const step = pipeline.parserTrace[index];
-                        if (!step) {
-                          return;
-                        }
-
-                        if (step.nodeId) {
-                          const targetNode = pipeline.nodeById[step.nodeId];
-                          if (targetNode) {
-                            setSelectedLine(targetNode.line);
+                    <div className="startup-panel-enter h-full min-h-0">
+                      <ParserTracePanel
+                        trace={pipeline.parserTrace}
+                        activeIndex={parserStepIndex}
+                        onSelect={(index) => {
+                          setParserStepIndex(index);
+                          const step = pipeline.parserTrace[index];
+                          if (!step) {
+                            return;
                           }
-                          setSelectedAstNodeId(step.nodeId);
-                        } else {
-                          setSelectedAstNodeId(null);
-                        }
 
-                        setSelectedTokenIndex(step.startToken);
-                      }}
-                    />
+                          if (step.nodeId) {
+                            const targetNode = pipeline.nodeById[step.nodeId];
+                            if (targetNode) {
+                              setSelectedLine(targetNode.line);
+                            }
+                            setSelectedAstNodeId(step.nodeId);
+                          } else {
+                            setSelectedAstNodeId(null);
+                          }
+
+                          setSelectedTokenIndex(step.startToken);
+                        }}
+                      />
+                    </div>
                   )}
 
                   {bottomTab === "logs" && (
-                    <div className="grid h-full min-h-0 grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
                       <div className="min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
                         {executionLog}
                       </div>
@@ -618,13 +622,13 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "output" && (
-                    <div className="h-full min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                    <div className="startup-panel-enter h-full min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
                       {terminalOutput.length > 0 ? terminalOutput.join("\n") : "<no metrics yet>"}
                     </div>
                   )}
 
                   {bottomTab === "state" && (
-                    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-2">
+                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
                         <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
                           Runtime Cap Table
@@ -670,14 +674,20 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "ir" && (
-                    <IRPanel
-                      instructions={pipeline.ir}
-                      stack={activeStep?.stack ?? []}
-                      activeLine={activeStep?.line ?? null}
-                    />
+                    <div className="startup-panel-enter h-full min-h-0">
+                      <IRPanel
+                        instructions={pipeline.ir}
+                        stack={activeStep?.stack ?? []}
+                        activeLine={activeStep?.line ?? null}
+                      />
+                    </div>
                   )}
 
-                  {bottomTab === "scope" && <ScopePanel scopes={activeStep?.scopes ?? []} />}
+                  {bottomTab === "scope" && (
+                    <div className="startup-panel-enter h-full min-h-0">
+                      <ScopePanel scopes={activeStep?.scopes ?? []} />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

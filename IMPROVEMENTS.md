@@ -36,5 +36,5 @@
 ## Phase 7: Polish
 
 - [x] **Pipeline Stage Indicators** - Show which pipeline stage is currently active
-- [ ] **Animated Transitions** - Smooth animations between pipeline stages
+- [x] **Animated Transitions** - Smooth animations between pipeline stages
 - [x] **Keyboard Navigation** - Arrow keys to step through timeline
