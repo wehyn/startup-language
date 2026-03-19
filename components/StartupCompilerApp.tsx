@@ -130,8 +130,9 @@ export function StartupCompilerApp() {
   const [stepIndex, setStepIndex] = useState(0);
   const [activeHeaderTab, setActiveHeaderTab] = useState<"pipeline" | "quick">("pipeline");
   const [bottomTab, setBottomTab] = useState<
-    "tokens" | "parser" | "logs" | "output" | "state" | "ir" | "scope"
+    "tokens" | "parser" | "runtime" | "state" | "ir" | "scope"
   >("tokens");
+  const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
@@ -517,8 +518,7 @@ export function StartupCompilerApp() {
                   {[
                     { id: "tokens", label: "Tokenized Assets" },
                     { id: "parser", label: "Parser Mode" },
-                    { id: "logs", label: "Investor Updates" },
-                    { id: "output", label: "Traction" },
+                    { id: "runtime", label: "Runtime" },
                     { id: "state", label: "State" },
                     { id: "ir", label: "IR + Stack" },
                     { id: "scope", label: "Scope" },
@@ -586,44 +586,73 @@ export function StartupCompilerApp() {
                     </div>
                   )}
 
-                  {bottomTab === "logs" && (
-                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-                      <div className="min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
-                        {executionLog}
+                  {bottomTab === "runtime" && (
+                    <div className="startup-panel-enter flex h-full min-h-0 flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: "events", label: "Events" },
+                          { id: "output", label: "Output" },
+                          { id: "errors", label: "Errors" },
+                        ].map((tab) => {
+                          const active = runtimeTab === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => setRuntimeTab(tab.id as typeof runtimeTab)}
+                              className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                                active
+                                  ? "border-[#60A5FA]/55 bg-[#60A5FA]/14 text-[#93C5FD]"
+                                  : "border-white/10 bg-white/5 text-zinc-300 hover:border-[#60A5FA]/35 hover:text-[#93C5FD]"
+                              }`}
+                            >
+                              {tab.label}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                          Error Arrows
-                        </div>
-                        <div className="space-y-1">
-                          {mappedErrors.length === 0 ? (
-                            <div className="rounded border border-white/10 px-2 py-1 font-mono text-xs text-zinc-500">
-                              No mapped errors
-                            </div>
-                          ) : (
-                            mappedErrors.map((entry) => (
-                              <button
-                                key={entry.key}
-                                type="button"
-                                onClick={() => {
-                                  focusSourceLocation(entry.line, entry.column);
-                                  setBottomTab("tokens");
-                                }}
-                                className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
-                              >
-                                <span className="text-rose-300">[{entry.kind.toUpperCase()}]</span> {entry.label}
-                                <span className="ml-2 text-rose-300/90">-&gt; L{entry.line}{entry.column !== null ? `:C${entry.column}` : ""}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
-                  {bottomTab === "output" && (
-                    <div className="startup-panel-enter h-full min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
-                      {terminalOutput.length > 0 ? terminalOutput.join("\n") : "<no metrics yet>"}
+                      {runtimeTab === "events" && (
+                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                          {executionLog}
+                        </div>
+                      )}
+
+                      {runtimeTab === "output" && (
+                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                          {terminalOutput.length > 0 ? terminalOutput.join("\n") : "<no metrics yet>"}
+                        </div>
+                      )}
+
+                      {runtimeTab === "errors" && (
+                        <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
+                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                            Error Arrows
+                          </div>
+                          <div className="space-y-1">
+                            {mappedErrors.length === 0 ? (
+                              <div className="rounded border border-white/10 px-2 py-1 font-mono text-xs text-zinc-500">
+                                No mapped errors
+                              </div>
+                            ) : (
+                              mappedErrors.map((entry) => (
+                                <button
+                                  key={entry.key}
+                                  type="button"
+                                  onClick={() => {
+                                    focusSourceLocation(entry.line, entry.column);
+                                    setBottomTab("tokens");
+                                  }}
+                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
+                                >
+                                  <span className="text-rose-300">[{entry.kind.toUpperCase()}]</span> {entry.label}
+                                  <span className="ml-2 text-rose-300/90">-&gt; L{entry.line}{entry.column !== null ? `:C${entry.column}` : ""}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
