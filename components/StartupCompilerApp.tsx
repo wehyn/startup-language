@@ -124,10 +124,10 @@ const findErrorNodeIds = (ast: ASTNode | null, line: number | null): string[] =>
 };
 
 const playbookTokenClass = (token: string): string => {
-  if (["Burn", "Vibe", "Equity", "Portfolio"].includes(token)) {
-    if (token === "Burn") return "text-[#60A5FA]";
-    if (token === "Vibe") return "text-[#34D399]";
-    if (token === "Equity") return "text-[#F472B6]";
+  if (["BURN", "VIBE", "EQUITY", "PORTFOLIO", "Burn", "Vibe", "Equity", "Portfolio"].includes(token)) {
+    if (token === "BURN" || token === "Burn") return "text-[#60A5FA]";
+    if (token === "VIBE" || token === "Vibe") return "text-[#34D399]";
+    if (token === "EQUITY" || token === "Equity") return "text-[#F472B6]";
     return "text-[#A78BFA]";
   }
 
@@ -195,10 +195,10 @@ export function StartupCompilerApp() {
     {
       title: "Variables & Types",
       items: [
-        "Burn (number): Burn burnRate ::> 1200?",
-        "Vibe (string): Vibe vibe ::> \"focus\"?",
-        "Equity (boolean): Equity isFunded ::> VESTED?",
-        "Portfolio (list): Portfolio milestones ::> [\"mvp\", \"launch\"]?",
+        "BURN (number): BURN burnRate ::> 1200?",
+        "VIBE (string): VIBE vibe ::> \"focus\"?",
+        "EQUITY (boolean): EQUITY isFunded ::> VESTED?",
+        "PORTFOLIO (list): PORTFOLIO milestones ::> [\"mvp\", \"launch\"]?",
       ],
     },
     {
@@ -774,10 +774,10 @@ export function StartupCompilerApp() {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Token Legend</div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
-                    <span className="text-[#60A5FA]">Burn = number</span>
-                    <span className="text-[#34D399]">Vibe = string</span>
-                    <span className="text-[#F472B6]">Equity = boolean</span>
-                    <span className="text-[#A78BFA]">Portfolio = list</span>
+                    <span className="text-[#60A5FA]">BURN = number</span>
+                    <span className="text-[#34D399]">VIBE = string</span>
+                    <span className="text-[#F472B6]">EQUITY = boolean</span>
+                    <span className="text-[#A78BFA]">PORTFOLIO = list</span>
                     <span className="text-[#93C5FD]">Control and I/O keywords</span>
                     <span className="text-[#FBBF24]">Numeric and state literals</span>
                   </div>
