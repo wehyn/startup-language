@@ -42,6 +42,7 @@ export function TypeCheckPanel({
   const showInference = view === "all" || view === "types" || view === "inference";
   const showErrors = view === "all" || view === "types" || view === "errors";
   const showLogs = view === "all" || view === "logs";
+  const sideBySideTypeView = compactEmbedded && showInference && showErrors && !showLogs;
   const sectionClass = compactEmbedded
     ? "flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/10 bg-black/20 p-2"
     : "flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-black/20 p-2";
@@ -57,7 +58,15 @@ export function TypeCheckPanel({
       {!embedded && (
         <div className="startup-heading mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Type Check</div>
       )}
-      <div className={compactEmbedded ? "flex h-full min-h-0 flex-col gap-3" : (embedded ? "grid h-full min-h-0 grid-cols-1 gap-3 content-start" : "grid h-[calc(100%-1.25rem)] min-h-0 grid-cols-1 gap-3 content-start")}>
+      <div className={
+        sideBySideTypeView
+          ? "grid h-full min-h-0 grid-cols-2 gap-3"
+          : compactEmbedded
+            ? "flex h-full min-h-0 flex-col gap-3"
+            : embedded
+              ? "grid h-full min-h-0 grid-cols-1 gap-3 content-start"
+              : "grid h-[calc(100%-1.25rem)] min-h-0 grid-cols-1 gap-3 content-start"
+      }>
         {showInference && (
         <div className={sectionClass}>
           <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Inference</div>

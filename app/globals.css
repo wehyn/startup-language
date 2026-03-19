@@ -149,9 +149,9 @@ body {
 
 .startup-shell {
   background:
-    radial-gradient(130% 110% at 6% 14%, rgba(89, 210, 255, 0.13) 0%, rgba(89, 210, 255, 0) 48%),
-    radial-gradient(120% 90% at 92% 88%, rgba(255, 191, 77, 0.11) 0%, rgba(255, 191, 77, 0) 44%),
-    linear-gradient(140deg, #0e1114 0%, #050608 56%, #030406 100%);
+    radial-gradient(125% 95% at 8% 10%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 34%, rgba(255, 255, 255, 0) 58%),
+    radial-gradient(120% 90% at 88% 90%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(145deg, #f4f5f6 0%, #9ca3af 34%, #111317 68%, #050608 100%);
 }
 
 .startup-island {
