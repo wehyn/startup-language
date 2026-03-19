@@ -20,7 +20,6 @@ export const buildReactFlowGraph = (ast: ASTNode): BuildResult => {
 
   const topLevel = ast.children ?? [];
 
-  const NODE_W = 140;
   const V_GAP = 56;
   const H_INDENT = 180;
 
