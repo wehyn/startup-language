@@ -1,5 +1,21 @@
 import { Token, TokenType } from "./types";
 
+export class TokenizerError extends Error {
+  readonly line: number;
+
+  readonly column: number;
+
+  readonly endColumn: number;
+
+  constructor(message: string, details: { line: number; column: number; endColumn?: number }) {
+    super(message);
+    this.name = "TokenizerError";
+    this.line = details.line;
+    this.column = details.column;
+    this.endColumn = details.endColumn ?? details.column + 1;
+  }
+}
+
 const KEYWORD_CANONICAL = new Map<string, string>([
   ["BURN", "Burn"],
   ["VIBE", "Vibe"],
@@ -64,10 +80,6 @@ export const tokenize = (source: string): Token[] => {
         continue;
       }
 
-      if (lineValue.startsWith("//", cursor)) {
-        break;
-      }
-
       if (char === '"') {
         const start = cursor;
         cursor += 1;
@@ -75,7 +87,11 @@ export const tokenize = (source: string): Token[] => {
           cursor += 1;
         }
         if (cursor >= lineValue.length) {
-          throw new Error(`Unterminated string at ${lineIndex + 1}:${start + 1}`);
+          throw new TokenizerError(`Unterminated string at ${lineIndex + 1}:${start + 1}`, {
+            line: lineIndex + 1,
+            column: start + 1,
+            endColumn: lineValue.length + 1,
+          });
         }
         const value = lineValue.slice(start + 1, cursor);
         tokens.push({
@@ -99,6 +115,10 @@ export const tokenize = (source: string): Token[] => {
         });
         cursor += op.length;
         continue;
+      }
+
+      if (lineValue.startsWith("//", cursor)) {
+        break;
       }
 
       if (DELIMITERS.has(char)) {
@@ -135,8 +155,13 @@ export const tokenize = (source: string): Token[] => {
           }
 
           const invalidLiteral = lineValue.slice(start, cursor);
-          throw new Error(
+          throw new TokenizerError(
             `Invalid numeric literal '${invalidLiteral}' at ${lineIndex + 1}:${invalidStart + 1}`,
+            {
+              line: lineIndex + 1,
+              column: start + 1,
+              endColumn: start + invalidLiteral.length + 1,
+            },
           );
         }
 
@@ -165,7 +190,10 @@ export const tokenize = (source: string): Token[] => {
         continue;
       }
 
-      throw new Error(`Unexpected token '${char}' at ${lineIndex + 1}:${cursor + 1}`);
+      throw new TokenizerError(`Unexpected token '${char}' at ${lineIndex + 1}:${cursor + 1}`, {
+        line: lineIndex + 1,
+        column: cursor + 1,
+      });
     }
   }
 

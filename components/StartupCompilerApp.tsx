@@ -16,7 +16,7 @@ import { ParserError, ParserTraceStep, parseTokensToAstWithTrace } from "@/lib/s
 import { AstNodeData, buildReactFlowGraph } from "@/lib/startup/reactflow";
 import { analyzeSemantics, SemanticResult } from "@/lib/startup/semantic";
 import { nextStep, prevStep, stepAt } from "@/lib/startup/timeline";
-import { tokenize } from "@/lib/startup/tokenizer";
+import { TokenizerError, tokenize } from "@/lib/startup/tokenizer";
 import type { ASTNode, IRInstruction, Timeline, Token } from "@/lib/startup/types";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -35,6 +35,7 @@ type PipelineResult = {
   errorColumn: number | null;
   errorStartToken: number | null;
   errorEndToken: number | null;
+  errorEndColumn: number | null;
   errorStage: "source" | "tokens" | "ast" | "execution";
   error: string | null;
 };
@@ -311,6 +312,7 @@ export function StartupCompilerApp() {
       errorColumn: null,
       errorStartToken: null,
       errorEndToken: null,
+      errorEndColumn: null,
       errorStage: "source",
       error: null,
     };
@@ -365,6 +367,19 @@ export function StartupCompilerApp() {
           .filter((index) => index >= error.startToken && index <= error.endToken);
         result.errorNodeIds = findErrorNodeIds(result.ast, error.line);
       } else {
+        if (error instanceof TokenizerError) {
+          result.errorLine = error.line;
+          result.errorColumn = error.column;
+          result.errorEndColumn = error.endColumn;
+          result.errorTokenIndexes = findErrorTokenIndexes(result.tokens, error.line, error.column);
+          if (result.errorTokenIndexes.length > 0) {
+            result.errorStartToken = result.errorTokenIndexes[0];
+            result.errorEndToken = result.errorTokenIndexes[result.errorTokenIndexes.length - 1];
+          }
+          result.errorNodeIds = findErrorNodeIds(result.ast, error.line);
+          return result;
+        }
+
         const { line, column } = parseLineColumnFromError(message);
         result.errorLine = line;
         result.errorColumn = column;
@@ -614,10 +629,30 @@ export function StartupCompilerApp() {
     setParserStepIndex(parserIndexForTimeline);
   }, [parserIndexForTimeline]);
 
-  const editorErrorRange = useMemo(
-    () => rangeFromTokenSpan(pipeline.tokens, pipeline.errorStartToken, pipeline.errorEndToken),
-    [pipeline.errorEndToken, pipeline.errorStartToken, pipeline.tokens],
-  );
+  const editorErrorRange = useMemo(() => {
+    if (
+      pipeline.errorLine !== null
+      && pipeline.errorColumn !== null
+      && pipeline.errorEndColumn !== null
+      && pipeline.errorEndColumn > pipeline.errorColumn
+    ) {
+      return {
+        startLine: pipeline.errorLine,
+        startColumn: pipeline.errorColumn,
+        endLine: pipeline.errorLine,
+        endColumn: pipeline.errorEndColumn,
+      };
+    }
+
+    return rangeFromTokenSpan(pipeline.tokens, pipeline.errorStartToken, pipeline.errorEndToken);
+  }, [
+    pipeline.errorColumn,
+    pipeline.errorEndColumn,
+    pipeline.errorEndToken,
+    pipeline.errorLine,
+    pipeline.errorStartToken,
+    pipeline.tokens,
+  ]);
 
   const diagnostics = [
     {
