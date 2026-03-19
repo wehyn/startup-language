@@ -91,7 +91,10 @@ export function TokenPanel({
     const top = startItem.offsetTop;
     const bottom = endItem.offsetTop + endItem.offsetHeight;
     const center = (top + bottom) / 2;
-    const targetTop = Math.max(0, center - scroller.clientHeight / 2);
+    const desiredViewportY = scroller.clientHeight * 0.7;
+    const downShift = 16;
+    const maxScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    const targetTop = Math.max(0, Math.min(maxScrollTop, center - desiredViewportY - downShift));
 
     scroller.scrollTo({
       top: targetTop,
@@ -125,7 +128,7 @@ export function TokenPanel({
         ) : (
         tokensByLine.map(([line, lineTokens]) => (
           <div key={`line-${line}`} className="rounded-lg border border-transparent bg-transparent">
-            <div className="sticky top-0 z-[1] border-b border-white/8 bg-black/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+            <div className="border-b border-white/8 bg-black/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
               Line {line}
             </div>
             <div className="space-y-1 p-1.5">
