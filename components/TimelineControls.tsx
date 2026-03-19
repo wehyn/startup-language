@@ -8,6 +8,7 @@ type TimelineControlsProps = {
   onPrev: () => void;
   onNext: () => void;
   onRunCode: () => void;
+  onScrub: (index: number) => void;
 };
 
 export function TimelineControls({
@@ -16,6 +17,7 @@ export function TimelineControls({
   onPrev,
   onNext,
   onRunCode,
+  onScrub,
 }: TimelineControlsProps) {
   const currentStep = total === 0 ? 0 : stepIndex + 1;
   const [runCodeAnimating, setRunCodeAnimating] = useState(false);
@@ -42,9 +44,10 @@ export function TimelineControls({
     <div className="startup-island startup-roomy-sm rounded-2xl px-4 py-3 backdrop-blur-[10px]">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="startup-heading text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">Phase {currentStep} / {total}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            data-testid="run-code"
             className={`startup-tab-btn active rounded-md px-3 py-1 text-xs font-bold tracking-wider transition-colors duration-150 hover:bg-[#60A5FA]/22${runCodeAnimating ? " run-code-animate" : ""}`}
             onClick={handleRunCode}
             onAnimationEnd={() => setRunCodeAnimating(false)}
@@ -53,6 +56,7 @@ export function TimelineControls({
           </button>
           <button
             type="button"
+            data-testid="step-prev"
             className="startup-tab-btn rounded-md px-3 py-1 text-xs text-zinc-100 transition-colors duration-150 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onPrev}
             disabled={stepIndex <= 0}
@@ -61,12 +65,31 @@ export function TimelineControls({
           </button>
           <button
             type="button"
+            data-testid="step-next"
             className="startup-tab-btn rounded-md px-3 py-1 text-xs text-zinc-100 transition-colors duration-150 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onNext}
             disabled={total === 0 || stepIndex >= total - 1}
           >
             ▶ Next Phase
           </button>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <input
+          type="range"
+          data-testid="timeline-scrubber"
+          min={0}
+          max={Math.max(0, total - 1)}
+          step={1}
+          value={total === 0 ? 0 : stepIndex}
+          onChange={(event) => onScrub(Number(event.target.value))}
+          disabled={total === 0}
+          className="h-1.5 w-full cursor-pointer accent-[#60A5FA] disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Timeline scrubber"
+        />
+        <div className="mt-1 text-right font-mono text-[10px] text-zinc-600/70">
+          {currentStep}/{total}
         </div>
       </div>
 
