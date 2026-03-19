@@ -218,6 +218,22 @@ export function StartupCompilerApp() {
   const [parserStepIndex, setParserStepIndex] = useState(0);
   const [issueJumpIndex, setIssueJumpIndex] = useState(-1);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const seededSource = params.get("source");
+
+    if (!seededSource) {
+      return;
+    }
+
+    setSource(seededSource);
+    setStepIndex(0);
+    setSelectedAstNodeId(null);
+    setSelectedTokenIndex(null);
+    setParserStepIndex(0);
+    setIssueJumpIndex(-1);
+  }, []);
+
   const quickReferenceSections = [
     {
       title: "Variables & Types",
