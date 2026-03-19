@@ -42,16 +42,40 @@ export type VariableState = {
   value: RuntimeValue;
 };
 
+export type ScopeEnvironment = {
+  id: string;
+  label: string;
+  level: number;
+  line: number;
+  variables: Record<string, VariableState>;
+};
+
 export type ExecutionStep = {
   stepId: number;
   activeNodeId: string;
   line: number;
   variables: Record<string, VariableState>;
+  stack: StackFrame[];
+  scopes: ScopeEnvironment[];
   log: string;
   output: string[];
 };
 
 export type Timeline = ExecutionStep[];
+
+export type StackFrame = {
+  id: string;
+  label: string;
+  line: number;
+};
+
+export type IRInstruction = {
+  index: number;
+  line: number;
+  opcode: string;
+  args: string[];
+  note?: string;
+};
 
 export type ArithmeticOperator = "+++" | "---" | "******" | "///";
 export type ComparisonOperator = ">>>" | "<<<" | "???" | "!!?";

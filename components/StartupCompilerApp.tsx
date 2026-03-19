@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ASTPanel } from "@/components/ASTPanel";
 import { EditorPanel, HoverRange } from "@/components/EditorPanel";
+import { IRPanel } from "@/components/IRPanel";
 import { ParserTracePanel } from "@/components/ParserTracePanel";
+import { ScopePanel } from "@/components/ScopePanel";
 import { TimelineControls } from "@/components/TimelineControls";
 import { TokenPanel } from "@/components/TokenPanel";
 import { TypeCheckPanel } from "@/components/TypeCheckPanel";
@@ -15,7 +17,7 @@ import { AstNodeData, buildReactFlowGraph } from "@/lib/startup/reactflow";
 import { analyzeSemantics, SemanticResult } from "@/lib/startup/semantic";
 import { nextStep, prevStep, stepAt } from "@/lib/startup/timeline";
 import { tokenize } from "@/lib/startup/tokenizer";
-import type { ASTNode, Timeline, Token } from "@/lib/startup/types";
+import type { ASTNode, IRInstruction, Timeline, Token } from "@/lib/startup/types";
 import type { Edge, Node } from "@xyflow/react";
 
 type PipelineResult = {
@@ -24,6 +26,7 @@ type PipelineResult = {
   parserTrace: ParserTraceStep[];
   semantic: SemanticResult;
   timeline: Timeline;
+  ir: IRInstruction[];
   graph: { nodes: Node<AstNodeData>[]; edges: Edge[] };
   nodeById: Record<string, ASTNode>;
   errorTokenIndexes: number[];
@@ -127,7 +130,7 @@ export function StartupCompilerApp() {
   const [stepIndex, setStepIndex] = useState(0);
   const [activeHeaderTab, setActiveHeaderTab] = useState<"pipeline" | "quick">("pipeline");
   const [bottomTab, setBottomTab] = useState<
-    "tokens" | "parser" | "logs" | "output" | "state"
+    "tokens" | "parser" | "logs" | "output" | "state" | "ir" | "scope"
   >("tokens");
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
@@ -201,6 +204,7 @@ export function StartupCompilerApp() {
       parserTrace: [],
       semantic: emptySemantic,
       timeline: [],
+      ir: [],
       graph: { nodes: [], edges: [] },
       nodeById: {},
       errorTokenIndexes: [],
@@ -229,7 +233,9 @@ export function StartupCompilerApp() {
       }
 
       result.errorStage = "execution";
-      result.timeline = executeAst(parsed.ast);
+      const executed = executeAst(parsed.ast);
+      result.timeline = executed.timeline;
+      result.ir = executed.ir;
       result.graph = buildReactFlowGraph(parsed.ast);
 
       if (result.semantic.issues.length > 0) {
@@ -514,6 +520,8 @@ export function StartupCompilerApp() {
                     { id: "logs", label: "Investor Updates" },
                     { id: "output", label: "Traction" },
                     { id: "state", label: "State" },
+                    { id: "ir", label: "IR + Stack" },
+                    { id: "scope", label: "Scope" },
                   ].map((tab) => {
                     const active = bottomTab === tab.id;
                     return (
@@ -660,6 +668,16 @@ export function StartupCompilerApp() {
                       />
                     </div>
                   )}
+
+                  {bottomTab === "ir" && (
+                    <IRPanel
+                      instructions={pipeline.ir}
+                      stack={activeStep?.stack ?? []}
+                      activeLine={activeStep?.line ?? null}
+                    />
+                  )}
+
+                  {bottomTab === "scope" && <ScopePanel scopes={activeStep?.scopes ?? []} />}
                 </div>
               </div>
             </div>

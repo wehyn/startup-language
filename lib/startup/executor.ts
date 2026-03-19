@@ -1,12 +1,14 @@
 import {
   ASTNode,
-  ArrayExpression,
   BinaryExpression,
   ComparisonOperator,
   ExecutionStep,
   Expression,
   ExpressionOperator,
+  IRInstruction,
   RuntimeValue,
+  ScopeEnvironment,
+  StackFrame,
   Timeline,
   VariableState,
   ValueType,
@@ -25,7 +27,27 @@ type RuntimeState = {
   stepCounter: number;
   output: string[];
   halted: boolean;
+  stack: StackFrame[];
+  scopeFrames: ScopeEnvironment[];
+  scopeCounter: number;
 };
+
+const stackFrameCounter = { value: 1 };
+
+const nextFrameId = () => {
+  const id = `frame-${stackFrameCounter.value}`;
+  stackFrameCounter.value += 1;
+  return id;
+};
+
+const cloneStack = (stack: StackFrame[]): StackFrame[] =>
+  stack.map((frame) => ({ ...frame }));
+
+const cloneScopes = (scopes: ScopeEnvironment[]): ScopeEnvironment[] =>
+  scopes.map((scope) => ({
+    ...scope,
+    variables: cloneVariables(scope.variables),
+  }));
 
 const cloneVariables = (variables: Record<string, VariableState>): Record<string, VariableState> => {
   const snapshot: Record<string, VariableState> = {};
@@ -81,12 +103,59 @@ const pushStep = (state: RuntimeState, node: ASTNode, log: string) => {
     activeNodeId: node.id,
     line: node.line,
     variables: cloneVariables(state.variables),
+    stack: cloneStack(state.stack),
+    scopes: cloneScopes(state.scopeFrames),
     log,
     output: [...state.output],
   };
 
   state.timeline.push(step);
   state.stepCounter += 1;
+};
+
+const pushFrame = (state: RuntimeState, label: string, line: number) => {
+  state.stack.push({
+    id: nextFrameId(),
+    label,
+    line,
+  });
+};
+
+const pushScope = (state: RuntimeState, label: string, line: number) => {
+  const level = state.scopeFrames.length;
+  const parentVars = state.scopeFrames[state.scopeFrames.length - 1]?.variables ?? {};
+  const scope: ScopeEnvironment = {
+    id: `scope-${state.scopeCounter}`,
+    label,
+    level,
+    line,
+    variables: cloneVariables(parentVars),
+  };
+  state.scopeCounter += 1;
+  state.scopeFrames.push(scope);
+};
+
+const popScope = (state: RuntimeState) => {
+  if (state.scopeFrames.length > 1) {
+    state.scopeFrames.pop();
+  }
+};
+
+const syncScopeVariable = (state: RuntimeState, name: string) => {
+  const variable = state.variables[name];
+  if (!variable) {
+    return;
+  }
+  state.scopeFrames[state.scopeFrames.length - 1].variables[name] = {
+    type: variable.type,
+    value: variable.value,
+  };
+};
+
+const popFrame = (state: RuntimeState) => {
+  if (state.stack.length > 1) {
+    state.stack.pop();
+  }
 };
 
 const evalArithmetic = (left: number, right: number, operator: ExpressionOperator): number => {
@@ -226,6 +295,7 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       type: node.value.variableType,
       value,
     };
+    syncScopeVariable(state, node.value.name);
     pushStep(state, node, `[EXEC] Declaring ${node.value.name} = ${formatRuntimeValue(value)}`);
     return;
   }
@@ -242,6 +312,7 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       type: targetType,
       value,
     };
+    syncScopeVariable(state, node.value.name);
     pushStep(state, node, `[EXEC] Assigning ${node.value.name} = ${formatRuntimeValue(value)}`);
     return;
   }
@@ -263,6 +334,7 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
         type: "Vibe",
         value: inputValue,
       };
+      syncScopeVariable(state, node.value.name);
     }
     pushStep(
       state,
@@ -282,6 +354,8 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
   }
 
   if (isIfNode(node)) {
+    pushFrame(state, `PIVOT @L${node.line}`, node.line);
+    pushScope(state, `PIVOT scope @L${node.line}`, node.line);
     const conditionValue = evaluateExpression(node.value.condition, state);
     const truthy = Boolean(conditionValue);
     const readableCondition = node.value.condition.kind === "BinaryExpr" ? node.value.condition : null;
@@ -298,14 +372,20 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       for (const child of node.children) {
         executeNode(child, state);
         if (state.halted) {
+          popFrame(state);
+          popScope(state);
           break;
         }
       }
     }
+    popFrame(state);
+    popScope(state);
     return;
   }
 
   if (isLoopNode(node)) {
+    pushFrame(state, `SPRINT @L${node.line}`, node.line);
+    pushScope(state, `SPRINT scope @L${node.line}`, node.line);
     let guard = 0;
 
     while (guard < 1000) {
@@ -321,24 +401,124 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       for (const child of node.children) {
         executeNode(child, state);
         if (state.halted) {
+          popFrame(state);
+          popScope(state);
           return;
         }
       }
 
       guard += 1;
     }
+    popFrame(state);
+    popScope(state);
     return;
   }
 };
 
-export const executeAst = (ast: ASTNode): Timeline => {
+const expressionToIR = (expression: Expression): string => {
+  if (expression.kind === "Literal") {
+    return formatRuntimeValue(expression.value);
+  }
+
+  if (expression.kind === "Identifier") {
+    return expression.name;
+  }
+
+  if (expression.kind === "ArrayLiteral") {
+    return `[${expression.elements.map((element) => expressionToIR(element)).join(", ")}]`;
+  }
+
+  if (expression.kind === "UnaryExpr") {
+    return `${expression.operator} ${expressionToIR(expression.expression)}`;
+  }
+
+  return `${expressionToIR(expression.left)} ${expression.operator} ${expressionToIR(expression.right)}`;
+};
+
+const buildIRForNode = (node: ASTNode, instructions: IRInstruction[]) => {
+  const emit = (opcode: string, args: string[], note?: string) => {
+    instructions.push({
+      index: instructions.length,
+      line: node.line,
+      opcode,
+      args,
+      note,
+    });
+  };
+
+  if (isDeclarationNode(node)) {
+    emit("DECL", [node.value.variableType, node.value.name, expressionToIR(node.value.expression)]);
+    return;
+  }
+
+  if (isAssignmentNode(node)) {
+    emit("ASSIGN", [node.value.name, expressionToIR(node.value.expression)]);
+    return;
+  }
+
+  if (isPitchNode(node)) {
+    emit("PITCH", [node.value.expression ? expressionToIR(node.value.expression) : "\"\""]);
+    return;
+  }
+
+  if (isAcquireNode(node)) {
+    emit("ACQUIRE", [node.value.name ?? "<anon>"]);
+    return;
+  }
+
+  if (isExitNode(node)) {
+    emit("EXIT", []);
+    return;
+  }
+
+  if (isIfNode(node)) {
+    emit("JUMP_IF_FALSE", [expressionToIR(node.value.condition)], "enter PIVOT body when true");
+    node.children.forEach((child) => {
+      buildIRForNode(child, instructions);
+    });
+    emit("END_IF", []);
+    return;
+  }
+
+  if (isLoopNode(node)) {
+    emit("LOOP_BEGIN", [expressionToIR(node.value.condition)]);
+    node.children.forEach((child) => {
+      buildIRForNode(child, instructions);
+    });
+    emit("LOOP_END", [expressionToIR(node.value.condition)]);
+  }
+};
+
+export const buildIntermediateRepresentation = (ast: ASTNode): IRInstruction[] => {
+  const instructions: IRInstruction[] = [];
+  for (const node of ast.children ?? []) {
+    buildIRForNode(node, instructions);
+  }
+  return instructions;
+};
+
+export const executeAst = (ast: ASTNode): { timeline: Timeline; ir: IRInstruction[] } => {
+  stackFrameCounter.value = 1;
   const state: RuntimeState = {
     variables: {},
     timeline: [],
     stepCounter: 1,
     output: [],
     halted: false,
+    stack: [{ id: nextFrameId(), label: "Program", line: ast.line }],
+    scopeFrames: [
+      {
+        id: "scope-0",
+        label: "Global scope",
+        level: 0,
+        line: ast.line,
+        variables: {},
+      },
+    ],
+    scopeCounter: 1,
   };
+
+  const ir = buildIntermediateRepresentation(ast);
 
   const nodes = ast.children ?? [];
 
@@ -349,5 +529,5 @@ export const executeAst = (ast: ASTNode): Timeline => {
     }
   }
 
-  return state.timeline;
+  return { timeline: state.timeline, ir };
 };

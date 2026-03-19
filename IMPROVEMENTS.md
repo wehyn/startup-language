@@ -25,13 +25,13 @@
 
 ## Phase 5: Lower-Level Visualization
 
-- [ ] **IR/Bytecode Panel** - Show intermediate representation before execution
-- [ ] **Execution Stack View** - Show call stack during execution
+- [x] **IR/Bytecode Panel** - Show intermediate representation before execution
+- [x] **Execution Stack View** - Show call stack during execution
 
 ## Phase 6: Scope & Environment
 
-- [ ] **Scope Visualization** - Show nested scopes created by PIVOT/SPRINT blocks
-- [ ] **Environment Table** - Display active variables per scope level
+- [x] **Scope Visualization** - Show nested scopes created by PIVOT/SPRINT blocks
+- [x] **Environment Table** - Display active variables per scope level
 
 ## Phase 7: Polish
 
