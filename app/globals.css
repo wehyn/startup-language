@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0d0d0e;
-  --foreground: #ffffff;
-  --accent: #60a5fa;
-  --startup-border-strong: rgba(255, 255, 255, 0.14);
-  --startup-border-normal: rgba(255, 255, 255, 0.1);
-  --startup-border-subtle: rgba(255, 255, 255, 0.06);
-  --startup-text-meta: #71717a;
-  --startup-text-body: #e4e4e7;
-  --startup-text-emphasis: #ffffff;
+  --background: #0a0b0d;
+  --foreground: #f4f5f6;
+  --accent: #59d2ff;
+  --accent-warm: #ffbf4d;
+  --startup-border-strong: rgba(89, 210, 255, 0.34);
+  --startup-border-normal: rgba(255, 255, 255, 0.16);
+  --startup-border-subtle: rgba(255, 255, 255, 0.08);
+  --startup-text-meta: #8f96a3;
+  --startup-text-body: #dce1e7;
+  --startup-text-emphasis: #f4f5f6;
 }
 
 @theme inline {
@@ -21,16 +22,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0d0d0e;
-    --foreground: #ffffff;
-    --accent: #60a5fa;
+    --background: #0a0b0d;
+    --foreground: #f4f5f6;
+    --accent: #59d2ff;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-mono), "JetBrains Mono", "Fira Code", monospace;
+  font-family: var(--font-geist-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
 }
 
 html,
@@ -92,48 +93,89 @@ body {
 }
 
 .startup-panel-enter {
-  animation: panel-fade-slide 180ms ease-out;
+  animation: panel-fade-slide 220ms ease-out;
+}
+
+.startup-heading {
+  font-family: var(--font-geist-sans), "Syne", sans-serif;
+  letter-spacing: 0.19em;
+}
+
+.startup-subheading {
+  letter-spacing: 0.15em;
+}
+
+.startup-roomy {
+  padding: 1.15rem;
+}
+
+.startup-roomy-sm {
+  padding: 0.95rem;
+}
+
+.startup-gap {
+  gap: 0.9rem;
 }
 
 .startup-tab-btn {
   border: 1px solid var(--startup-border-normal);
-  background: rgba(255, 255, 255, 0.04);
-  color: #d4d4d8;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  color: #d6dde7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .startup-tab-btn:hover {
-  border-color: rgba(96, 165, 250, 0.35);
-  color: #93c5fd;
+  border-color: rgba(89, 210, 255, 0.55);
+  color: #8fdfff;
+  transform: translateY(-1px);
 }
 
 .startup-tab-btn.active {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(96, 165, 250, 0.14);
-  color: #93c5fd;
+  border-color: rgba(89, 210, 255, 0.72);
+  background: linear-gradient(152deg, rgba(89, 210, 255, 0.18), rgba(89, 210, 255, 0.08));
+  color: #dbf5ff;
+  box-shadow: 0 0 0 1px rgba(89, 210, 255, 0.23), 0 8px 24px rgba(89, 210, 255, 0.12);
 }
 
 .startup-empty {
   border: 1px dashed var(--startup-border-subtle);
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--startup-text-meta);
 }
 
 .startup-hero-glow {
-  background: radial-gradient(88% 70% at 50% 38%, rgba(96, 165, 250, 0.13) 0%, rgba(96, 165, 250, 0.04) 30%, rgba(255, 255, 255, 0) 62%);
+  background: radial-gradient(95% 72% at 54% 30%, rgba(89, 210, 255, 0.19) 0%, rgba(89, 210, 255, 0.05) 36%, rgba(255, 255, 255, 0) 68%);
 }
 
 .startup-shell {
-  background: radial-gradient(120% 100% at 50% 45%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 52%),
-    linear-gradient(150deg, #0b0b0b 0%, #030303 62%, #000000 100%);
+  background:
+    radial-gradient(130% 110% at 6% 14%, rgba(89, 210, 255, 0.13) 0%, rgba(89, 210, 255, 0) 48%),
+    radial-gradient(120% 90% at 92% 88%, rgba(255, 191, 77, 0.11) 0%, rgba(255, 191, 77, 0) 44%),
+    linear-gradient(140deg, #0e1114 0%, #050608 56%, #030406 100%);
 }
 
 .startup-island {
-  background: linear-gradient(130deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.006));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01));
   border: 1px solid var(--startup-border-normal);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.015);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 14px 38px rgba(0, 0, 0, 0.24);
+  position: relative;
+  isolation: isolate;
+}
+
+.startup-island::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(transparent 97%, rgba(255, 255, 255, 0.03) 100%);
+  background-size: 100% 6px;
+  opacity: 0.5;
 }
 
 .startup-surface {
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
