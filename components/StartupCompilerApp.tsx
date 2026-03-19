@@ -16,7 +16,7 @@ import { ParserError, ParserTraceStep, parseTokensToAstWithTrace } from "@/lib/s
 import { AstNodeData, buildReactFlowGraph } from "@/lib/startup/reactflow";
 import { analyzeSemantics, SemanticResult } from "@/lib/startup/semantic";
 import { nextStep, prevStep, stepAt } from "@/lib/startup/timeline";
-import { TokenizerError, tokenize } from "@/lib/startup/tokenizer";
+import { TokenizerError, tokenizeWithRecovery } from "@/lib/startup/tokenizer";
 import type { ASTNode, IRInstruction, Timeline, Token } from "@/lib/startup/types";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -158,7 +158,7 @@ const playbookTokenClass = (token: string): string => {
     return "text-[#A78BFA]";
   }
 
-  if (["PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "AND", "OR", "NOT"].includes(token)) {
+  if (["PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "CLASS", "NEW", "AND", "OR", "NOT"].includes(token)) {
     return "text-[#93C5FD]";
   }
 
@@ -211,7 +211,7 @@ export function StartupCompilerApp() {
   const [stepIndex, setStepIndex] = useState(0);
   const [activeHeaderTab, setActiveHeaderTab] = useState<"pipeline" | "quick">("pipeline");
   const [bottomTab, setBottomTab] = useState<
-    "tokens" | "parser" | "runtime" | "state" | "ir" | "scope"
+    "tokens" | "parser" | "runtime" | "state" | "ir"
   >("tokens");
   const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
@@ -277,7 +277,28 @@ export function StartupCompilerApp() {
       title: "Control Flow",
       items: [
         "PIVOT (if): PIVOT (burnRate >>> 1000) [ PITCH \"cut spend\"? ]",
-        "SPRINT (for): SPRINT (runway <<< 6) [ PITCH \"raise now\"? ]",
+        "SPRINT (while): SPRINT (runway <<< 6) [ PITCH \"raise now\"? ]",
+      ],
+    },
+    {
+      title: "Object Basics",
+      items: [
+        "Class declaration: CLASS Startup?",
+        "Instantiation: VIBE founderTool ::> NEW Startup?",
+      ],
+    },
+    {
+      title: "Alt Expression Syntax",
+      items: [
+        "Assignment alias: age ~ 10 + 5.",
+        "Equivalent canonical form: age ::> 10 +++ 5?",
+      ],
+    },
+    {
+      title: "Recovery Rules",
+      items: [
+        "Phrase-Level Recovery: missing '?' is auto-inserted",
+        "Panic Mode Recovery: invalid tokens are skipped and traced",
       ],
     },
     {
@@ -319,12 +340,24 @@ export function StartupCompilerApp() {
 
     try {
       result.errorStage = "tokens";
-      result.tokens = tokenize(source);
+      const tokenized = tokenizeWithRecovery(source);
+      result.tokens = tokenized.tokens;
+
+      const tokenizerTrace = tokenized.recoveries.map((recovery): ParserTraceStep => ({
+        id: recovery.id,
+        phase: "recovery",
+        rule: "Panic Mode Recovery",
+        description: recovery.message,
+        line: recovery.line,
+        startToken: 0,
+        endToken: 0,
+      }));
+      result.parserTrace = tokenizerTrace;
 
       result.errorStage = "ast";
       const parsed = parseTokensToAstWithTrace(result.tokens);
       result.ast = parsed.ast;
-      result.parserTrace = parsed.trace;
+      result.parserTrace = [...result.parserTrace, ...parsed.trace];
       result.semantic = analyzeSemantics(parsed.ast);
 
       if (result.ast) {
@@ -403,6 +436,58 @@ export function StartupCompilerApp() {
   const terminalOutput = pipeline.error
     ? []
     : activeStep?.output ?? [];
+
+  const symbolRows = useMemo(() => {
+    if (!activeStep) {
+      return [];
+    }
+
+    const bytesForValue = (type: string, value: unknown): number => {
+      if (type === "Burn") {
+        return 8;
+      }
+
+      if (type === "Equity") {
+        return 1;
+      }
+
+      if (type === "Vibe") {
+        return typeof value === "string" ? new TextEncoder().encode(value).length : 0;
+      }
+
+      if (type === "Portfolio") {
+        return 8;
+      }
+
+      return 0;
+    };
+
+    const names = Object.keys(activeStep.variables);
+    const scopes = activeStep.scopes ?? [];
+
+    const getLevel = (name: string): number => {
+      for (let idx = scopes.length - 1; idx >= 0; idx -= 1) {
+        if (Object.prototype.hasOwnProperty.call(scopes[idx].variables, name)) {
+          return scopes[idx].level;
+        }
+      }
+      return 0;
+    };
+
+    let runningOffset = 0;
+
+    return names.map((name) => {
+      const info = activeStep.variables[name];
+      const row = {
+        name,
+        info,
+        level: getLevel(name),
+        offset: runningOffset,
+      };
+      runningOffset += bytesForValue(info.type, info.value);
+      return row;
+    });
+  }, [activeStep]);
 
   const focusSourceLocation = useCallback((line: number, column: number | null) => {
     setSelectedLine(line);
@@ -800,9 +885,8 @@ export function StartupCompilerApp() {
                     { id: "tokens", label: "Tokenized Assets" },
                     { id: "parser", label: "Parser Mode" },
                     { id: "runtime", label: "Runtime" },
-                    { id: "state", label: "State" },
+                    { id: "state", label: "State + Scope" },
                     { id: "ir", label: "IR + Stack" },
-                    { id: "scope", label: "Scope" },
                   ].map((tab) => {
                     const active = bottomTab === tab.id;
                     return (
@@ -953,47 +1037,57 @@ export function StartupCompilerApp() {
                   )}
 
                   {bottomTab === "state" && (
-                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-2">
-                      <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
-                        <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                          Runtime Cap Table
-                        </div>
-                        <table className="w-full text-left font-mono text-xs text-zinc-100">
-                          <thead className="border-b border-white/10 text-zinc-400">
-                            <tr>
-                              <th className="px-2 py-1">Name</th>
-                              <th className="px-2 py-1">Type</th>
-                              <th className="px-2 py-1">Value</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {activeStep ? (
-                              Object.entries(activeStep.variables).map(([name, info]) => (
-                                <tr key={name} className="border-b border-white/5 last:border-0">
-                                  <td className="px-2 py-1">{name}</td>
-                                  <td className="px-2 py-1">{info.type}</td>
-                                  <td className="px-2 py-1">{String(info.value)}</td>
-                                </tr>
-                              ))
-                            ) : (
+                    <div className="startup-panel-enter grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+                      <div className="grid min-h-0 grid-cols-1 gap-3 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)]">
+                        <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
+                          <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                            Runtime Cap Table
+                          </div>
+                          <table className="w-full text-left font-mono text-xs text-zinc-100">
+                            <thead className="border-b border-white/10 text-zinc-400">
                               <tr>
-                                  <td className="px-2 py-2 text-zinc-500" colSpan={3}>
-                                    No variables yet. Execute at least one step to populate runtime state.
-                                  </td>
+                                <th className="px-2 py-1">Name</th>
+                                <th className="px-2 py-1">Type</th>
+                                <th className="px-2 py-1">Value</th>
+                                <th className="px-2 py-1">Lvl</th>
+                                <th className="px-2 py-1">Offset</th>
                               </tr>
-                            )}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {activeStep ? (
+                                symbolRows.map((row) => (
+                                  <tr key={row.name} className="border-b border-white/5 last:border-0">
+                                    <td className="px-2 py-1">{row.name}</td>
+                                    <td className="px-2 py-1">{row.info.type}</td>
+                                    <td className="px-2 py-1">{String(row.info.value)}</td>
+                                    <td className="px-2 py-1 text-zinc-400">{row.level}</td>
+                                    <td className="px-2 py-1 text-zinc-400">{row.offset}</td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                    <td className="px-2 py-2 text-zinc-500" colSpan={5}>
+                                      No variables yet. Execute at least one step to populate runtime state.
+                                    </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="min-h-0 rounded-xl border border-white/10 bg-black/20 p-2">
+                          <ScopePanel scopes={activeStep?.scopes ?? []} />
+                        </div>
                       </div>
 
                       <TypeCheckPanel
                         embedded
                         entries={pipeline.semantic.entries}
                         issues={pipeline.semantic.issues}
-                        onIssueSelect={(line, column) => {
-                          focusSourceLocation(line, column);
-                          setBottomTab("tokens");
-                        }}
+                          onIssueSelect={(line, column) => {
+                            focusSourceLocation(line, column);
+                            setBottomTab("tokens");
+                          }}
                       />
                     </div>
                   )}
@@ -1008,11 +1102,6 @@ export function StartupCompilerApp() {
                     </div>
                   )}
 
-                  {bottomTab === "scope" && (
-                    <div className="startup-panel-enter h-full min-h-0">
-                      <ScopePanel scopes={activeStep?.scopes ?? []} />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

@@ -26,6 +26,8 @@ const tokenColorClass = (type: Token["type"]): string => {
       return "text-[#F472B6]";
     case "DELIMITER":
       return "text-[#A78BFA]";
+    case "INVALID":
+      return "text-rose-300";
     default:
       return "text-zinc-200";
   }

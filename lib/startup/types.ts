@@ -3,7 +3,8 @@ export type TokenType =
   | "IDENTIFIER"
   | "LITERAL"
   | "OPERATOR"
-  | "DELIMITER";
+  | "DELIMITER"
+  | "INVALID";
 
 export type Token = {
   type: TokenType;
@@ -16,6 +17,7 @@ export type ASTNodeType =
   | "Program"
   | "Declaration"
   | "Assignment"
+  | "Class"
   | "If"
   | "Loop"
   | "Pitch"
@@ -101,6 +103,12 @@ export type UnaryExpression = {
   line: number;
 };
 
+export type NewExpression = {
+  kind: "NewExpr";
+  className: string;
+  line: number;
+};
+
 export type IdentifierExpression = {
   kind: "Identifier";
   name: string;
@@ -121,6 +129,7 @@ export type Expression =
   | IdentifierExpression
   | ArrayExpression
   | UnaryExpression
+  | NewExpression
   | BinaryExpression;
 
 export type DeclarationValue = {
@@ -132,6 +141,10 @@ export type DeclarationValue = {
 export type AssignmentValue = {
   name: string;
   expression: Expression;
+};
+
+export type ClassValue = {
+  name: string;
 };
 
 export type PitchValue = {
@@ -151,6 +164,9 @@ export const isDeclarationNode = (node: ASTNode): node is ASTNode & { value: Dec
 
 export const isAssignmentNode = (node: ASTNode): node is ASTNode & { value: AssignmentValue } =>
   node.type === "Assignment";
+
+export const isClassNode = (node: ASTNode): node is ASTNode & { value: ClassValue } =>
+  node.type === "Class";
 
 export const isIfNode = (node: ASTNode): node is ASTNode & { value: BranchValue; children: ASTNode[] } =>
   node.type === "If";

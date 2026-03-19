@@ -83,6 +83,8 @@ export const buildReactFlowGraph = (ast: ASTNode): BuildResult => {
 
 const formatNodeLabel = (type: ASTNode["type"]): string => {
   switch (type) {
+    case "Class":
+      return "CLASS";
     case "Pitch":
       return "PITCH";
     case "Acquire":

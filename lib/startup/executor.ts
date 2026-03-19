@@ -14,6 +14,7 @@ import {
   ValueType,
   isAcquireNode,
   isAssignmentNode,
+  isClassNode,
   isDeclarationNode,
   isExitNode,
   isIfNode,
@@ -23,6 +24,7 @@ import {
 
 type RuntimeState = {
   variables: Record<string, VariableState>;
+  classes: Set<string>;
   timeline: Timeline;
   stepCounter: number;
   output: string[];
@@ -92,6 +94,10 @@ const expressionToText = (expression: Expression): string => {
 
   if (expression.kind === "UnaryExpr") {
     return `NOT ${expressionToText(expression.expression)}`;
+  }
+
+  if (expression.kind === "NewExpr") {
+    return `NEW ${expression.className}`;
   }
 
   return `${expressionToText(expression.left)} ${expression.operator} ${expressionToText(expression.right)}`;
@@ -210,6 +216,13 @@ const evaluateExpression = (expression: Expression, state: RuntimeState): Runtim
     return !Boolean(value);
   }
 
+  if (expression.kind === "NewExpr") {
+    if (!state.classes.has(expression.className)) {
+      throw new Error(`Undefined class '${expression.className}' at line ${expression.line}`);
+    }
+    return `<${expression.className} instance>`;
+  }
+
   return evaluateBinaryExpression(expression, state);
 };
 
@@ -301,6 +314,12 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
     };
     syncScopeVariable(state, node.value.name);
     pushStep(state, node, `[EXEC] Declaring ${node.value.name} = ${formatRuntimeValue(value)}`);
+    return;
+  }
+
+  if (isClassNode(node)) {
+    state.classes.add(node.value.name);
+    pushStep(state, node, `[EXEC] Registering CLASS ${node.value.name}`);
     return;
   }
 
@@ -436,6 +455,10 @@ const expressionToIR = (expression: Expression): string => {
     return `${expression.operator} ${expressionToIR(expression.expression)}`;
   }
 
+  if (expression.kind === "NewExpr") {
+    return `NEW ${expression.className}`;
+  }
+
   return `${expressionToIR(expression.left)} ${expression.operator} ${expressionToIR(expression.right)}`;
 };
 
@@ -457,6 +480,11 @@ const buildIRForNode = (node: ASTNode, instructions: IRInstruction[]) => {
 
   if (isAssignmentNode(node)) {
     emit("ASSIGN", [node.value.name, expressionToIR(node.value.expression)]);
+    return;
+  }
+
+  if (isClassNode(node)) {
+    emit("CLASS", [node.value.name]);
     return;
   }
 
@@ -505,6 +533,7 @@ export const executeAst = (ast: ASTNode): { timeline: Timeline; ir: IRInstructio
   stackFrameCounter.value = 1;
   const state: RuntimeState = {
     variables: {},
+    classes: new Set<string>(),
     timeline: [],
     stepCounter: 1,
     output: [],

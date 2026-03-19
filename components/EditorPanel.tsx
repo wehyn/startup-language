@@ -33,7 +33,7 @@ const registerStartupLanguage = (monaco: Monaco) => {
     keywords: [
       "Burn", "Vibe", "Equity", "Portfolio",
       "BURN", "VIBE", "EQUITY", "PORTFOLIO",
-      "PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT",
+      "PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "CLASS", "NEW",
       "AND", "OR", "NOT", "VESTED", "CLIFF",
     ],
     operators: ["::>", "+++", "---", "******", "///", ">>>", "<<<", "???", "!!?"],
@@ -69,8 +69,8 @@ const registerStartupLanguage = (monaco: Monaco) => {
           },
         }],
 
-        // single-char delimiters
-        [/[()[\]?,]/, "delimiter"],
+        // single-char delimiters and alt syntax aliases
+        [/[()[\]?.,~+\-*/]/, "delimiter"],
 
         // whitespace
         [/\s+/, "white"],
