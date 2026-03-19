@@ -140,8 +140,8 @@ export function ASTPanel({
   }));
 
   return (
-    <div className="startup-island h-full min-h-0 rounded-2xl p-4 backdrop-blur-[10px]">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Synergy Map (AST)</div>
+    <div className="startup-island startup-roomy h-full min-h-0 rounded-2xl p-4 backdrop-blur-[10px]">
+      <div className="startup-heading mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Synergy Map (AST)</div>
       <div className="h-[calc(100%-1.25rem)] min-h-0 overflow-hidden rounded-xl border border-white/10">
         <ReactFlowProvider>
           <ASTPanelCanvas

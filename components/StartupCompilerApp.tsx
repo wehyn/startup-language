@@ -133,6 +133,7 @@ export function StartupCompilerApp() {
     "tokens" | "parser" | "runtime" | "state" | "ir" | "scope"
   >("tokens");
   const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
+  const [pitchMode, setPitchMode] = useState(false);
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
@@ -438,21 +439,16 @@ export function StartupCompilerApp() {
   }, [parserIndexForTimeline]);
 
   return (
-    <div className="startup-shell relative h-[100dvh] overflow-hidden bg-[#090A0D] px-5 py-5 text-white selection:bg-white/20">
-      {/* Linear-style subtle background glow */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
-      
+    <div className={`startup-shell relative h-[100dvh] overflow-hidden bg-[#090A0D] px-5 py-5 text-white selection:bg-white/20 ${pitchMode ? "startup-pitch-mode" : ""}`}>
       <div className="relative mx-auto flex h-full min-h-0 max-w-[1500px] flex-col gap-4">
         <div className="startup-island rounded-2xl px-4 py-2 text-xs tracking-wide text-zinc-300 backdrop-blur-[10px]">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="startup-gap flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setActiveHeaderTab("pipeline")}
-                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
-                  activeHeaderTab === "pipeline"
-                    ? "border-[#60A5FA]/55 bg-[#60A5FA]/14 text-[#93C5FD]"
-                    : "border-white/10 bg-white/5 text-zinc-300 hover:border-[#60A5FA]/35 hover:text-[#93C5FD]"
+                className={`startup-tab-btn rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
+                  activeHeaderTab === "pipeline" ? "active" : ""
                 }`}
               >
                 Growth Engine
@@ -460,16 +456,22 @@ export function StartupCompilerApp() {
               <button
                 type="button"
                 onClick={() => setActiveHeaderTab("quick")}
-                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
-                  activeHeaderTab === "quick"
-                    ? "border-[#60A5FA]/55 bg-[#60A5FA]/14 text-[#93C5FD]"
-                    : "border-white/10 bg-white/5 text-zinc-300 hover:border-[#60A5FA]/35 hover:text-[#93C5FD]"
+                className={`startup-tab-btn rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
+                  activeHeaderTab === "quick" ? "active" : ""
                 }`}
               >
                 Founder&apos;s Playbook
               </button>
             </div>
-            {activeHeaderTab === "pipeline" && null}
+            <button
+              type="button"
+              onClick={() => setPitchMode((current) => !current)}
+              className={`startup-tab-btn rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                pitchMode ? "active" : ""
+              }`}
+            >
+              {pitchMode ? "Pitch Deck Mode On" : "Pitch Deck Mode Off"}
+            </button>
           </div>
         </div>
 
@@ -483,8 +485,9 @@ export function StartupCompilerApp() {
               onRunCode={handleRunCode}
             />
 
-            <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4">
-              <div className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4 startup-gap">
+              <div className="relative grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="startup-hero-glow pointer-events-none absolute inset-0 -z-10 rounded-2xl" />
                 <EditorPanel
                   value={source}
                   onChange={(nextValue) => {
@@ -513,7 +516,7 @@ export function StartupCompilerApp() {
                 />
               </div>
 
-              <div className="startup-island flex min-h-0 flex-col rounded-2xl p-3 backdrop-blur-[10px]">
+              <div className="startup-island startup-roomy-sm flex min-h-0 flex-col rounded-2xl p-3 backdrop-blur-[10px]">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   {[
                     { id: "tokens", label: "Tokenized Assets" },
@@ -529,11 +532,7 @@ export function StartupCompilerApp() {
                         key={tab.id}
                         type="button"
                         onClick={() => setBottomTab(tab.id as typeof bottomTab)}
-                        className={`rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
-                          active
-                            ? "border-[#60A5FA]/55 bg-[#60A5FA]/14 text-[#93C5FD]"
-                            : "border-white/10 bg-white/5 text-zinc-300 hover:border-[#60A5FA]/35 hover:text-[#93C5FD]"
-                        }`}
+                        className={`startup-tab-btn rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${active ? "active" : ""}`}
                       >
                         {tab.label}
                       </button>
@@ -600,11 +599,7 @@ export function StartupCompilerApp() {
                               key={tab.id}
                               type="button"
                               onClick={() => setRuntimeTab(tab.id as typeof runtimeTab)}
-                              className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
-                                active
-                                  ? "border-[#60A5FA]/55 bg-[#60A5FA]/14 text-[#93C5FD]"
-                                  : "border-white/10 bg-white/5 text-zinc-300 hover:border-[#60A5FA]/35 hover:text-[#93C5FD]"
-                              }`}
+                              className={`startup-tab-btn rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${active ? "active" : ""}`}
                             >
                               {tab.label}
                             </button>
@@ -614,13 +609,17 @@ export function StartupCompilerApp() {
 
                       {runtimeTab === "events" && (
                         <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
-                          {executionLog}
+                          {executionLog.length > 0
+                            ? executionLog
+                            : "Run a phase to generate runtime events and execution traces."}
                         </div>
                       )}
 
                       {runtimeTab === "output" && (
                         <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
-                          {terminalOutput.length > 0 ? terminalOutput.join("\n") : "<no metrics yet>"}
+                          {terminalOutput.length > 0
+                            ? terminalOutput.join("\n")
+                            : "No output yet. Use LAUNCH MVP or step through execution to produce output."}
                         </div>
                       )}
 
@@ -631,8 +630,8 @@ export function StartupCompilerApp() {
                           </div>
                           <div className="space-y-1">
                             {mappedErrors.length === 0 ? (
-                              <div className="rounded border border-white/10 px-2 py-1 font-mono text-xs text-zinc-500">
-                                No mapped errors
+                              <div className="startup-empty rounded px-2 py-1 font-mono text-xs">
+                                No mapped errors. If parser or semantic issues appear, jump links show up here.
                               </div>
                             ) : (
                               mappedErrors.map((entry) => (
@@ -681,9 +680,9 @@ export function StartupCompilerApp() {
                               ))
                             ) : (
                               <tr>
-                                <td className="px-2 py-2 text-zinc-500" colSpan={3}>
-                                  No variables yet
-                                </td>
+                                  <td className="px-2 py-2 text-zinc-500" colSpan={3}>
+                                    No variables yet. Execute at least one step to populate runtime state.
+                                  </td>
                               </tr>
                             )}
                           </tbody>

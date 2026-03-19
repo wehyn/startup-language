@@ -12,11 +12,11 @@ export function ParserTracePanel({ trace, activeIndex, onSelect }: ParserTracePa
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Parser Steps</div>
+        <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Parser Steps</div>
         <div className="space-y-1.5">
           {trace.length === 0 ? (
-            <div className="rounded border border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-500">
-              No parser steps
+            <div className="startup-empty rounded px-2 py-1.5 font-mono text-xs">
+              No parser steps yet. Syntax traces appear after tokenization and parsing.
             </div>
           ) : (
             trace.map((step, index) => {
@@ -45,9 +45,9 @@ export function ParserTracePanel({ trace, activeIndex, onSelect }: ParserTracePa
       </div>
 
       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Matched Rule</div>
+        <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Matched Rule</div>
         {trace.length === 0 ? (
-          <div className="font-mono text-xs text-zinc-500">No production selected</div>
+          <div className="startup-empty rounded px-2 py-1.5 font-mono text-xs">No production selected. Choose a parser step to inspect its rule.</div>
         ) : (
           <div className="space-y-2 font-mono text-xs">
             <div className="rounded border border-white/10 px-2 py-1 text-zinc-200">

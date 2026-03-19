@@ -8,13 +8,13 @@ export function ScopePanel({ scopes }: ScopePanelProps) {
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+        <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
           Scope Stack
         </div>
         <div className="space-y-1">
           {scopes.length === 0 ? (
-            <div className="rounded border border-white/10 px-2 py-1 font-mono text-xs text-zinc-500">
-              No active scopes
+            <div className="startup-empty rounded px-2 py-1 font-mono text-xs">
+              No active scopes yet. Execute PIVOT/SPRINT blocks to create nested scopes.
             </div>
           ) : (
             [...scopes].reverse().map((scope, index) => (
@@ -37,11 +37,11 @@ export function ScopePanel({ scopes }: ScopePanelProps) {
       </div>
 
       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20">
-        <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+        <div className="startup-subheading sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
           Environment Table
         </div>
         {scopes.length === 0 ? (
-          <div className="px-2 py-2 font-mono text-xs text-zinc-500">No variables in scope</div>
+          <div className="startup-empty m-2 rounded px-2 py-2 font-mono text-xs">No variables in scope. Declarations appear here by active scope level.</div>
         ) : (
           <div className="space-y-2 p-2">
             {[...scopes].reverse().map((scope) => {

@@ -39,11 +39,11 @@ export function TypeCheckPanel({
       }
     >
       {!embedded && (
-        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Type Check</div>
+        <div className="startup-heading mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Type Check</div>
       )}
       <div className={embedded ? "grid h-full min-h-0 grid-cols-1 gap-3" : "grid h-[calc(100%-1.25rem)] min-h-0 grid-cols-1 gap-3"}>
         <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Inference</div>
+          <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Inference</div>
           <table className="w-full text-left font-mono text-[11px] text-zinc-100">
             <thead className="border-b border-white/10 text-zinc-400">
               <tr>
@@ -57,7 +57,7 @@ export function TypeCheckPanel({
               {entries.length === 0 ? (
                 <tr>
                   <td className="px-2 py-2 text-zinc-500" colSpan={4}>
-                    No declarations or assignments yet
+                    No declarations or assignments yet. Add typed variables in source to populate inference.
                   </td>
                 </tr>
               ) : (
@@ -89,10 +89,10 @@ export function TypeCheckPanel({
         </div>
 
         <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Type Errors</div>
+          <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Type Errors</div>
           <div className="space-y-1 font-mono text-[11px]">
             {issues.length === 0 ? (
-              <div className="text-zinc-500">No semantic issues</div>
+              <div className="startup-empty rounded px-2 py-1">No semantic issues. Type mismatch warnings will appear here.</div>
             ) : (
               issues.map((issue) => (
                 <button

@@ -93,7 +93,7 @@ export function TokenPanel({
       }
     >
       {!embedded && (
-        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Tokenized Assets</div>
+        <div className="startup-heading mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Tokenized Assets</div>
       )}
       <div
         ref={scrollerRef}
@@ -103,7 +103,12 @@ export function TokenPanel({
             : "h-[calc(100%-1.25rem)] min-h-0 space-y-2 overflow-auto rounded-xl border border-white/10 p-3 font-mono text-xs"
         }
       >
-        {tokensByLine.map(([line, lineTokens]) => (
+        {tokens.length === 0 ? (
+          <div className="startup-empty rounded px-2 py-1.5 font-mono text-xs">
+            No tokens yet. Edit source in The Pitch Deck to generate a token stream.
+          </div>
+        ) : (
+        tokensByLine.map(([line, lineTokens]) => (
           <div key={`line-${line}`} className="rounded-lg border border-transparent bg-transparent">
             <div className="sticky top-0 z-[1] border-b border-white/8 bg-black/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
               Line {line}
@@ -148,7 +153,7 @@ export function TokenPanel({
               })}
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );
