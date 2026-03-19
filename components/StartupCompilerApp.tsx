@@ -411,6 +411,22 @@ export function StartupCompilerApp() {
     return [];
   }, [activeStep, pipeline.ast, selectedAstNodeId, selectedTokenIndex]);
 
+  const activeNodeLabel = useMemo(() => {
+    if (!activeStep) {
+      return "-";
+    }
+
+    return pipeline.nodeById[activeStep.activeNodeId]?.type ?? activeStep.activeNodeId;
+  }, [activeStep, pipeline.nodeById]);
+
+  const activeScopeLabel = useMemo(() => {
+    if (!activeStep || activeStep.scopes.length === 0) {
+      return "Global scope";
+    }
+
+    return activeStep.scopes[activeStep.scopes.length - 1].label;
+  }, [activeStep]);
+
   const parserIndexForTimeline = useMemo(() => {
     if (pipeline.parserTrace.length === 0) {
       return 0;
@@ -482,6 +498,27 @@ export function StartupCompilerApp() {
               onNext={handleNext}
               onRunCode={handleRunCode}
             />
+
+            <div className="sticky top-0 z-20 rounded-2xl border border-[#60A5FA]/35 bg-[#0A111B]/75 px-3 py-2 backdrop-blur-[8px]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-200">
+                <span>
+                  <span className="text-zinc-500">Now Executing</span>
+                  <span className="ml-1 text-[#93C5FD]">{activeStep ? `Step ${stepIndex + 1}/${pipeline.timeline.length}` : "Idle"}</span>
+                </span>
+                <span>
+                  <span className="text-zinc-500">Line</span>
+                  <span className="ml-1 text-zinc-100">{activeStep?.line ?? "-"}</span>
+                </span>
+                <span>
+                  <span className="text-zinc-500">Node</span>
+                  <span className="ml-1 text-zinc-100">{activeNodeLabel}</span>
+                </span>
+                <span>
+                  <span className="text-zinc-500">Scope</span>
+                  <span className="ml-1 text-zinc-100">{activeScopeLabel}</span>
+                </span>
+              </div>
+            </div>
 
             <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4">
               <div className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
