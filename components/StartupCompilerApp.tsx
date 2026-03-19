@@ -576,7 +576,7 @@ export function StartupCompilerApp() {
 
                   {bottomTab === "logs" && (
                     <div className="grid h-full min-h-0 grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-                      <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
+                      <div className="min-h-0 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-2 font-mono text-xs text-zinc-100">
                         {executionLog}
                       </div>
                       <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
