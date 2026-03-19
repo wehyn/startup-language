@@ -686,10 +686,26 @@ export function StartupCompilerApp() {
                                     focusSourceLocation(entry.line, entry.column);
                                     setBottomTab("tokens");
                                   }}
-                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
+                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-1.5 text-left font-mono text-xs text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
                                 >
-                                  <span className="text-rose-300">[{entry.kind.toUpperCase()}]</span> {entry.label}
-                                  <span className="ml-2 text-rose-300/90">-&gt; L{entry.line}{entry.column !== null ? `:C${entry.column}` : ""}</span>
+                                  <div className="grid grid-cols-[minmax(0,1fr)_56px_auto] items-center gap-2">
+                                    <div className="min-w-0 truncate">
+                                      <span className="text-rose-300">[{entry.kind.toUpperCase()}]</span> {entry.label}
+                                    </div>
+                                    <svg
+                                      className="h-3 w-14 text-rose-300/90"
+                                      viewBox="0 0 56 12"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <line x1="2" y1="6" x2="50" y2="6" stroke="currentColor" strokeWidth="1.2" />
+                                      <path d="M50 2 L54 6 L50 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <span className="rounded border border-rose-300/35 bg-rose-400/10 px-1.5 py-0.5 text-[11px] text-rose-200">
+                                      L{entry.line}
+                                      {entry.column !== null ? `:C${entry.column}` : ""}
+                                    </span>
+                                  </div>
                                 </button>
                               ))
                             )}

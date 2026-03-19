@@ -21,7 +21,7 @@
 
 - [x] **Error Token Highlighting** - Mark error tokens in red in TokenPanel
 - [x] **Error Node Highlighting** - Mark error nodes in red in AST
-- [ ] **Error Arrows** - Draw arrows from error messages to source location
+- [x] **Error Arrows** - Draw arrows from error messages to source location
 
 ## Phase 5: Lower-Level Visualization
 
