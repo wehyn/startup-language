@@ -504,24 +504,24 @@ export function StartupCompilerApp() {
               }}
             />
 
-            <div className="sticky top-0 z-20 rounded-2xl border border-[#60A5FA]/35 bg-[#0A111B]/75 px-3 py-2 backdrop-blur-[8px]">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-200">
-                <span>
-                  <span className="text-zinc-500">Now Executing</span>
-                  <span className="ml-1 text-[#93C5FD]">{activeStep ? `Step ${stepIndex + 1}/${pipeline.timeline.length}` : "Idle"}</span>
-                </span>
-                <span>
-                  <span className="text-zinc-500">Line</span>
-                  <span className="ml-1 text-zinc-100">{activeStep?.line ?? "-"}</span>
-                </span>
-                <span>
-                  <span className="text-zinc-500">Node</span>
-                  <span className="ml-1 text-zinc-100">{activeNodeLabel}</span>
-                </span>
-                <span>
-                  <span className="text-zinc-500">Scope</span>
-                  <span className="ml-1 text-zinc-100">{activeScopeLabel}</span>
-                </span>
+            <div className="startup-island sticky top-0 z-20 rounded-2xl px-3 py-2 backdrop-blur-[10px]">
+              <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-4">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Now Executing</div>
+                  <div className="text-[#93C5FD]">{activeStep ? `Step ${stepIndex + 1}/${pipeline.timeline.length}` : "Idle"}</div>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Line</div>
+                  <div className="text-zinc-100">{activeStep?.line ?? "-"}</div>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Node</div>
+                  <div className="truncate text-zinc-100">{activeNodeLabel}</div>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Scope</div>
+                  <div className="truncate text-zinc-100">{activeScopeLabel}</div>
+                </div>
               </div>
             </div>
 

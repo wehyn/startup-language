@@ -72,7 +72,7 @@ export function TimelineControls({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5">
         <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Timeline</span>
         <input
           type="range"
@@ -80,7 +80,7 @@ export function TimelineControls({
           max={Math.max(total - 1, 0)}
           value={total === 0 ? 0 : stepIndex}
           onChange={(event) => onScrub(Number(event.target.value))}
-          className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-white/15 accent-[#60A5FA] disabled:opacity-40"
+          className="startup-range h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-transparent disabled:opacity-40"
           disabled={total === 0}
           aria-label="Execution timeline scrubber"
         />
