@@ -144,14 +144,14 @@ body {
 }
 
 .startup-hero-glow {
-  background: radial-gradient(95% 72% at 54% 30%, rgba(89, 210, 255, 0.19) 0%, rgba(89, 210, 255, 0.05) 36%, rgba(255, 255, 255, 0) 68%);
+  background: radial-gradient(96% 74% at 50% 50%, rgba(255, 255, 255, 0.022) 0%, rgba(255, 255, 255, 0.007) 36%, rgba(255, 255, 255, 0.0025) 56%, rgba(255, 255, 255, 0) 78%);
 }
 
 .startup-shell {
   background:
-    radial-gradient(125% 95% at 8% 10%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 34%, rgba(255, 255, 255, 0) 58%),
-    radial-gradient(120% 90% at 88% 90%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 48%),
-    linear-gradient(145deg, #f4f5f6 0%, #9ca3af 34%, #111317 68%, #050608 100%);
+    radial-gradient(90% 72% at 50% 46%, rgba(255, 255, 255, 0.029) 0%, rgba(255, 255, 255, 0.0105) 30%, rgba(255, 255, 255, 0.0045) 48%, rgba(2, 3, 5, 0) 70%),
+    radial-gradient(155% 132% at 50% 52%, rgba(255, 255, 255, 0.005) 0%, rgba(255, 255, 255, 0.0022) 48%, rgba(2, 3, 5, 0) 86%),
+    linear-gradient(180deg, #040507 0%, #020304 46%, #000102 100%);
 }
 
 .startup-island {
