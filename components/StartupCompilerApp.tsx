@@ -44,6 +44,7 @@ const emptySemantic: SemanticResult = {
   entries: [],
   symbolTable: {},
   issues: [],
+  logs: [],
 };
 
 const collectAstNodes = (node: ASTNode): ASTNode[] => {
@@ -1084,6 +1085,7 @@ export function StartupCompilerApp() {
                         embedded
                         entries={pipeline.semantic.entries}
                         issues={pipeline.semantic.issues}
+                        logs={pipeline.semantic.logs}
                           onIssueSelect={(line, column) => {
                             focusSourceLocation(line, column);
                             setBottomTab("tokens");
