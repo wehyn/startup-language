@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ASTPanel } from "@/components/ASTPanel";
 import { EditorPanel, HoverRange } from "@/components/EditorPanel";
@@ -216,6 +216,7 @@ export function StartupCompilerApp() {
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
+  const [issueJumpIndex, setIssueJumpIndex] = useState(-1);
 
   const quickReferenceSections = [
     {
@@ -364,7 +365,7 @@ export function StartupCompilerApp() {
     ? []
     : activeStep?.output ?? [];
 
-  const focusSourceLocation = (line: number, column: number | null) => {
+  const focusSourceLocation = useCallback((line: number, column: number | null) => {
     setSelectedLine(line);
 
     const tokenIndexes = findErrorTokenIndexes(pipeline.tokens, line, column);
@@ -372,7 +373,7 @@ export function StartupCompilerApp() {
 
     const nodeIds = findErrorNodeIds(pipeline.ast, line);
     setSelectedAstNodeId(nodeIds.length > 0 ? nodeIds[0] : null);
-  };
+  }, [pipeline.ast, pipeline.tokens]);
 
   const focusErrorByStage = (stage: "tokens" | "ast" | "semantic" | "execution") => {
     if (stage === "semantic" && pipeline.semantic.issues.length > 0) {
@@ -427,6 +428,31 @@ export function StartupCompilerApp() {
     pipeline.semantic.issues,
   ]);
 
+  const jumpToNextIssue = useCallback(() => {
+    if (mappedErrors.length === 0) {
+      return;
+    }
+
+    const nextIndex = (issueJumpIndex + 1) % mappedErrors.length;
+    const entry = mappedErrors[nextIndex];
+
+    setIssueJumpIndex(nextIndex);
+    focusSourceLocation(entry.line, entry.column);
+
+    if (entry.kind === "semantic") {
+      setBottomTab("state");
+      return;
+    }
+
+    if (pipeline.errorStage === "execution") {
+      setBottomTab("runtime");
+      setRuntimeTab("errors");
+      return;
+    }
+
+    setBottomTab("tokens");
+  }, [focusSourceLocation, issueJumpIndex, mappedErrors, pipeline.errorStage]);
+
   const handlePrev = () => {
     setSelectedAstNodeId(null);
     setSelectedTokenIndex(null);
@@ -469,13 +495,18 @@ export function StartupCompilerApp() {
         setSelectedTokenIndex(null);
         setStepIndex((current) => nextStep(pipeline.timeline, current));
       }
+
+      if (event.key.toLowerCase() === "n" && event.altKey) {
+        event.preventDefault();
+        jumpToNextIssue();
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeHeaderTab, pipeline.timeline]);
+  }, [activeHeaderTab, jumpToNextIssue, pipeline.timeline]);
 
   const highlightedTokenIndexes = useMemo(() => {
     if (selectedAstNodeId) {
@@ -569,24 +600,28 @@ export function StartupCompilerApp() {
       id: "tokens" as const,
       label: "Tokenizer",
       count: pipeline.errorStage === "tokens" && pipeline.error ? 1 : 0,
+      preview: pipeline.errorStage === "tokens" ? (pipeline.error ?? "") : "No tokenizer issues",
       tone: "border-amber-300/40 text-amber-200",
     },
     {
       id: "ast" as const,
       label: "Parser",
       count: pipeline.errorStage === "ast" && pipeline.error ? 1 : 0,
+      preview: pipeline.errorStage === "ast" ? (pipeline.error ?? "") : "No parser issues",
       tone: "border-sky-300/40 text-sky-200",
     },
     {
       id: "semantic" as const,
       label: "Semantic",
       count: pipeline.semantic.issues.length,
+      preview: pipeline.semantic.issues[0]?.message ?? "No semantic issues",
       tone: "border-fuchsia-300/40 text-fuchsia-200",
     },
     {
       id: "execution" as const,
       label: "Runtime",
       count: pipeline.errorStage === "execution" && pipeline.error ? 1 : 0,
+      preview: pipeline.errorStage === "execution" ? (pipeline.error ?? "") : "No runtime issues",
       tone: "border-rose-300/40 text-rose-200",
     },
   ];
@@ -637,7 +672,16 @@ export function StartupCompilerApp() {
             />
 
             <div className="startup-island rounded-2xl px-3 py-2 backdrop-blur-[10px]">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Diagnostics</div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Diagnostics</div>
+                <button
+                  type="button"
+                  onClick={jumpToNextIssue}
+                  className="rounded border border-white/15 bg-white/5 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-300 transition hover:bg-white/10"
+                >
+                  Next Issue (Alt+N)
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {diagnostics.map((diag) => (
                   <button
@@ -645,10 +689,15 @@ export function StartupCompilerApp() {
                     type="button"
                     onClick={() => focusErrorByStage(diag.id)}
                     data-testid={`diagnostic-${diag.id}`}
-                    className={`rounded border bg-white/5 px-2 py-1 font-mono text-[11px] transition hover:bg-white/10 ${diag.tone}`}
+                    className={`rounded border bg-white/5 px-2 py-1 text-left transition hover:bg-white/10 ${diag.tone}`}
                   >
-                    <span className="mr-1 text-zinc-500">{diag.label}</span>
-                    <span>{diag.count}</span>
+                    <div className="font-mono text-[11px]">
+                      <span className="mr-1 text-zinc-500">{diag.label}</span>
+                      <span>{diag.count}</span>
+                    </div>
+                    <div className="max-w-[260px] truncate font-mono text-[10px] text-zinc-400">
+                      {diag.preview}
+                    </div>
                   </button>
                 ))}
               </div>
