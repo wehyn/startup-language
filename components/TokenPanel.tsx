@@ -56,6 +56,19 @@ export function TokenPanel({
     return null;
   }, [errorTokenIndexes, highlightedTokenIndexes]);
 
+  const tokensByLine = useMemo(() => {
+    const lines = new Map<number, Array<{ token: Token; index: number }>>();
+
+    tokens.forEach((token, index) => {
+      if (!lines.has(token.line)) {
+        lines.set(token.line, []);
+      }
+      lines.get(token.line)?.push({ token, index });
+    });
+
+    return Array.from(lines.entries()).sort((a, b) => a[0] - b[0]);
+  }, [tokens]);
+
   useEffect(() => {
     if (autoScrollTargetIndex === null) {
       return;
@@ -90,43 +103,52 @@ export function TokenPanel({
             : "h-[calc(100%-1.25rem)] min-h-0 space-y-2 overflow-auto rounded-xl border border-white/10 p-3 font-mono text-xs"
         }
       >
-        {tokens.map((token, index) => {
-          const isHighlighted = highlightedSet.has(index);
-          const isError = errorSet.has(index);
-          const range: HoverRange = {
-            startLine: token.line,
-            startColumn: token.column,
-            endLine: token.line,
-            endColumn: token.column + token.value.length,
-          };
+        {tokensByLine.map(([line, lineTokens]) => (
+          <div key={`line-${line}`} className="rounded-lg border border-white/8 bg-black/15">
+            <div className="sticky top-0 z-[1] border-b border-white/8 bg-black/35 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+              Line {line}
+            </div>
+            <div className="space-y-1 p-1.5">
+              {lineTokens.map(({ token, index }) => {
+                const isHighlighted = highlightedSet.has(index);
+                const isError = errorSet.has(index);
+                const range: HoverRange = {
+                  startLine: token.line,
+                  startColumn: token.column,
+                  endLine: token.line,
+                  endColumn: token.column + token.value.length,
+                };
 
-          return (
-            <button
-              type="button"
-              key={`${token.line}-${token.column}-${token.value}`}
-              ref={(element) => {
-                tokenItemRefs.current[index] = element;
-              }}
-              className={`flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition-colors duration-150 hover:bg-white/10 ${
-                isError
-                  ? "border-rose-400/60 bg-rose-500/15"
-                  : isHighlighted
-                  ? "border-[#60A5FA]/55 bg-[#60A5FA]/14"
-                  : "border-white/5 bg-black/10 hover:border-white/20"
-              }`}
-              onMouseEnter={() => onTokenHover(range)}
-              onMouseLeave={() => onTokenHover(null)}
-              onClick={() => onTokenClick?.(index)}
-              aria-disabled={!onTokenClick}
-            >
-              <span className="text-zinc-500">[{token.type}]</span>
-              <span className={tokenColorClass(token.type)}>{token.value}</span>
-              <span className="ml-auto text-zinc-500">
-                {token.line}:{token.column}
-              </span>
-            </button>
-          );
-        })}
+                return (
+                  <button
+                    type="button"
+                    key={`${token.line}-${token.column}-${token.value}`}
+                    ref={(element) => {
+                      tokenItemRefs.current[index] = element;
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition-colors duration-150 hover:bg-white/10 ${
+                      isError
+                        ? "border-rose-400/60 bg-rose-500/15"
+                        : isHighlighted
+                        ? "border-[#60A5FA]/55 bg-[#60A5FA]/14"
+                        : "border-white/5 bg-black/10 hover:border-white/20"
+                    }`}
+                    onMouseEnter={() => onTokenHover(range)}
+                    onMouseLeave={() => onTokenHover(null)}
+                    onClick={() => onTokenClick?.(index)}
+                    aria-disabled={!onTokenClick}
+                  >
+                    <span className="text-zinc-500">[{token.type}]</span>
+                    <span className={tokenColorClass(token.type)}>{token.value}</span>
+                    <span className="ml-auto text-zinc-500">
+                      {token.line}:{token.column}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

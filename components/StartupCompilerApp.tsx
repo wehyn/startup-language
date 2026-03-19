@@ -497,6 +497,11 @@ export function StartupCompilerApp() {
               onPrev={handlePrev}
               onNext={handleNext}
               onRunCode={handleRunCode}
+              onScrub={(index) => {
+                setSelectedAstNodeId(null);
+                setSelectedTokenIndex(null);
+                setStepIndex(index);
+              }}
             />
 
             <div className="sticky top-0 z-20 rounded-2xl border border-[#60A5FA]/35 bg-[#0A111B]/75 px-3 py-2 backdrop-blur-[8px]">

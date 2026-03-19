@@ -8,6 +8,7 @@ type TimelineControlsProps = {
   onPrev: () => void;
   onNext: () => void;
   onRunCode: () => void;
+  onScrub: (index: number) => void;
 };
 
 export function TimelineControls({
@@ -16,6 +17,7 @@ export function TimelineControls({
   onPrev,
   onNext,
   onRunCode,
+  onScrub,
 }: TimelineControlsProps) {
   const currentStep = total === 0 ? 0 : stepIndex + 1;
   const [runCodeAnimating, setRunCodeAnimating] = useState(false);
@@ -68,6 +70,20 @@ export function TimelineControls({
             ▶ Next Phase
           </button>
         </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Timeline</span>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(total - 1, 0)}
+          value={total === 0 ? 0 : stepIndex}
+          onChange={(event) => onScrub(Number(event.target.value))}
+          className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-white/15 accent-[#60A5FA] disabled:opacity-40"
+          disabled={total === 0}
+          aria-label="Execution timeline scrubber"
+        />
       </div>
     </div>
   );
