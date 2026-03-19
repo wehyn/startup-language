@@ -31,6 +31,7 @@ const registerStartupLanguage = (monaco: Monaco) => {
   monaco.languages.setMonarchTokensProvider("startup", {
     keywords: [
       "Burn", "Vibe", "Equity", "Portfolio",
+      "BURN", "VIBE", "EQUITY", "PORTFOLIO",
       "PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT",
       "AND", "OR", "NOT", "VESTED", "CLIFF",
     ],

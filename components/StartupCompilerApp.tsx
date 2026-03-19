@@ -123,6 +123,60 @@ const findErrorNodeIds = (ast: ASTNode | null, line: number | null): string[] =>
   return nearest ? [nearest.id] : [];
 };
 
+const playbookTokenClass = (token: string): string => {
+  if (["Burn", "Vibe", "Equity", "Portfolio"].includes(token)) {
+    if (token === "Burn") return "text-[#60A5FA]";
+    if (token === "Vibe") return "text-[#34D399]";
+    if (token === "Equity") return "text-[#F472B6]";
+    return "text-[#A78BFA]";
+  }
+
+  if (["PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "AND", "OR", "NOT"].includes(token)) {
+    return "text-[#93C5FD]";
+  }
+
+  if (["VESTED", "CLIFF"].includes(token)) {
+    return "text-[#FBBF24]";
+  }
+
+  if (["::>", "+++", "---", "******", "///", ">>>", "<<<", "???", "!!?"].includes(token)) {
+    return "text-[#F472B6]";
+  }
+
+  if (/^[0-9]+(\.[0-9]+)?$/.test(token)) {
+    return "text-[#FBBF24]";
+  }
+
+  if (/^".*"$/.test(token)) {
+    return "text-[#34D399]";
+  }
+
+  return "text-zinc-100";
+};
+
+const renderPlaybookCode = (snippet: string) => {
+  const parts = snippet.match(/(\"[^\"]*\"|::>|\+\+\+|---|\*{6}|\/{3}|>{3}|<{3}|\?{3}|!!\?|[()[\]?,]|\b[a-zA-Z_][\w]*\b|\d+(?:\.\d+)?|\s+|.)/g) ?? [snippet];
+  let cursor = 0;
+
+  return (
+    <code className="rounded bg-white/8 px-1.5 py-0.5 font-mono text-[11px]">
+      {parts.map((part) => {
+        const key = `${part}-${cursor}`;
+        cursor += part.length;
+        if (/^\s+$/.test(part)) {
+          return <span key={`ws-${key}`}>{part}</span>;
+        }
+
+        return (
+          <span key={key} className={playbookTokenClass(part)}>
+            {part}
+          </span>
+        );
+      })}
+    </code>
+  );
+};
+
 export function StartupCompilerApp() {
   const [source, setSource] = useState(PRELOADED_DEMO);
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
@@ -185,7 +239,7 @@ export function StartupCompilerApp() {
     {
       title: "I/O",
       items: [
-        "PITCH/ACQUIRE/EXIT: PITCH founderName?, ACQUIRE founderName?, PITCH founderName?, EXIT?",
+        "PITCH/ACQUIRE/EXIT: PITCH founderName?, ACQUIRE founderName?, EXIT?",
       ],
     },
     {
@@ -717,6 +771,17 @@ export function StartupCompilerApp() {
                 Founder&apos;s Playbook (.startup DSL)
               </div>
               <div className="grid gap-4 text-sm text-zinc-200">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Token Legend</div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
+                    <span className="text-[#60A5FA]">Burn = number</span>
+                    <span className="text-[#34D399]">Vibe = string</span>
+                    <span className="text-[#F472B6]">Equity = boolean</span>
+                    <span className="text-[#A78BFA]">Portfolio = list</span>
+                    <span className="text-[#93C5FD]">Control and I/O keywords</span>
+                    <span className="text-[#FBBF24]">Numeric and state literals</span>
+                  </div>
+                </div>
                 {quickReferenceSections.map((section) => (
                   <div key={section.title} className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-white">
@@ -731,9 +796,7 @@ export function StartupCompilerApp() {
                         return (
                           <li key={item} className="flex flex-wrap items-baseline gap-2">
                             <span className="text-zinc-400">{label}:</span>
-                            <code className="rounded bg-white/8 px-1.5 py-0.5 font-mono text-[11px] text-zinc-100">
-                              {code}
-                            </code>
+                            {renderPlaybookCode(code)}
                           </li>
                         );
                       })}

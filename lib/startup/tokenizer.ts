@@ -1,10 +1,13 @@
 import { Token, TokenType } from "./types";
 
+const KEYWORD_CANONICAL = new Map<string, string>([
+  ["BURN", "Burn"],
+  ["VIBE", "Vibe"],
+  ["EQUITY", "Equity"],
+  ["PORTFOLIO", "Portfolio"],
+]);
 const KEYWORDS = new Set([
-  "Burn",
-  "Vibe",
-  "Equity",
-  "Portfolio",
+  ...KEYWORD_CANONICAL.values(),
   "PIVOT",
   "SPRINT",
   "PITCH",
@@ -22,6 +25,8 @@ const DELIMITERS = new Set(["(", ")", "[", "]", "?", ","]);
 const isAlpha = (char: string) => /[a-zA-Z_]/.test(char);
 const isDigit = (char: string) => /[0-9]/.test(char);
 const isAlphaNumeric = (char: string) => /[a-zA-Z0-9_]/.test(char);
+
+const normalizeKeyword = (value: string): string => KEYWORD_CANONICAL.get(value) ?? value;
 
 const toTokenType = (value: string): TokenType => {
   if (KEYWORDS.has(value)) {
@@ -137,7 +142,7 @@ export const tokenize = (source: string): Token[] => {
         while (cursor < lineValue.length && isAlphaNumeric(lineValue[cursor])) {
           cursor += 1;
         }
-        const value = lineValue.slice(start, cursor);
+        const value = normalizeKeyword(lineValue.slice(start, cursor));
         tokens.push({
           type: toTokenType(value),
           value,
