@@ -22,8 +22,8 @@ export function ScopePanel({ scopes }: ScopePanelProps) {
                 key={scope.id}
                 className={`rounded border px-2 py-1 font-mono text-xs ${
                   index === 0
-                    ? "border-[#60A5FA]/45 bg-[#60A5FA]/10 text-[#BFDBFE]"
-                    : "border-white/10 bg-black/20 text-zinc-300"
+                    ? "border-[#60A5FA]/35 bg-[#60A5FA]/8 text-[#BFDBFE]"
+                    : "border-white/8 bg-black/15 text-zinc-300"
                 }`}
               >
                 <div>

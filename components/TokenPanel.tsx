@@ -104,8 +104,8 @@ export function TokenPanel({
         }
       >
         {tokensByLine.map(([line, lineTokens]) => (
-          <div key={`line-${line}`} className="rounded-lg border border-white/6 bg-black/10">
-            <div className="sticky top-0 z-[1] border-b border-white/6 bg-black/20 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+          <div key={`line-${line}`} className="rounded-lg border border-transparent bg-transparent">
+            <div className="sticky top-0 z-[1] border-b border-white/8 bg-black/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">
               Line {line}
             </div>
             <div className="space-y-1 p-1.5">

@@ -411,22 +411,6 @@ export function StartupCompilerApp() {
     return [];
   }, [activeStep, pipeline.ast, selectedAstNodeId, selectedTokenIndex]);
 
-  const activeNodeLabel = useMemo(() => {
-    if (!activeStep) {
-      return "-";
-    }
-
-    return pipeline.nodeById[activeStep.activeNodeId]?.type ?? activeStep.activeNodeId;
-  }, [activeStep, pipeline.nodeById]);
-
-  const activeScopeLabel = useMemo(() => {
-    if (!activeStep || activeStep.scopes.length === 0) {
-      return "Global scope";
-    }
-
-    return activeStep.scopes[activeStep.scopes.length - 1].label;
-  }, [activeStep]);
-
   const parserIndexForTimeline = useMemo(() => {
     if (pipeline.parserTrace.length === 0) {
       return 0;
@@ -497,33 +481,7 @@ export function StartupCompilerApp() {
               onPrev={handlePrev}
               onNext={handleNext}
               onRunCode={handleRunCode}
-              onScrub={(index) => {
-                setSelectedAstNodeId(null);
-                setSelectedTokenIndex(null);
-                setStepIndex(index);
-              }}
             />
-
-            <div className="startup-island sticky top-0 z-20 rounded-2xl px-3 py-2 backdrop-blur-[10px]">
-              <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-4">
-                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Now Executing</div>
-                  <div className="text-[#93C5FD]">{activeStep ? `Step ${stepIndex + 1}/${pipeline.timeline.length}` : "Idle"}</div>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Line</div>
-                  <div className="text-zinc-100">{activeStep?.line ?? "-"}</div>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Node</div>
-                  <div className="truncate text-zinc-100">{activeNodeLabel}</div>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 font-mono">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Scope</div>
-                  <div className="truncate text-zinc-100">{activeScopeLabel}</div>
-                </div>
-              </div>
-            </div>
 
             <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.4fr)_minmax(180px,1fr)] gap-4">
               <div className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">

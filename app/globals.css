@@ -83,30 +83,6 @@ body {
   animation: panel-fade-slide 180ms ease-out;
 }
 
-.startup-range {
-  background: linear-gradient(to right, rgba(96, 165, 250, 0.32), rgba(255, 255, 255, 0.14));
-}
-
-.startup-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  border: 1px solid rgba(96, 165, 250, 0.65);
-  background: #dbeafe;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-}
-
-.startup-range::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  border: 1px solid rgba(96, 165, 250, 0.65);
-  background: #dbeafe;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-}
-
 .startup-shell {
   background: radial-gradient(120% 100% at 50% 45%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 52%),
     linear-gradient(150deg, #0b0b0b 0%, #030303 62%, #000000 100%);
