@@ -345,6 +345,10 @@ export function StartupCompilerApp() {
           firstIssue.line,
           firstIssue.column,
         );
+        if (result.errorTokenIndexes.length > 0) {
+          result.errorStartToken = result.errorTokenIndexes[0];
+          result.errorEndToken = result.errorTokenIndexes[result.errorTokenIndexes.length - 1];
+        }
         result.errorNodeIds = findErrorNodeIds(result.ast, firstIssue.line);
       }
     } catch (error) {
@@ -365,6 +369,10 @@ export function StartupCompilerApp() {
         result.errorLine = line;
         result.errorColumn = column;
         result.errorTokenIndexes = findErrorTokenIndexes(result.tokens, line, column);
+        if (result.errorTokenIndexes.length > 0) {
+          result.errorStartToken = result.errorTokenIndexes[0];
+          result.errorEndToken = result.errorTokenIndexes[result.errorTokenIndexes.length - 1];
+        }
         result.errorNodeIds = findErrorNodeIds(result.ast, line);
       }
     }
@@ -606,7 +614,7 @@ export function StartupCompilerApp() {
     setParserStepIndex(parserIndexForTimeline);
   }, [parserIndexForTimeline]);
 
-  const parserErrorRange = useMemo(
+  const editorErrorRange = useMemo(
     () => rangeFromTokenSpan(pipeline.tokens, pipeline.errorStartToken, pipeline.errorEndToken),
     [pipeline.errorEndToken, pipeline.errorStartToken, pipeline.tokens],
   );
@@ -734,7 +742,7 @@ export function StartupCompilerApp() {
                   activeLine={activeStep?.line ?? 1}
                   selectedLine={selectedLine}
                   hoverRange={hoverRange}
-                  errorRange={parserErrorRange}
+                  errorRange={editorErrorRange}
                 />
 
                 <ASTPanel

@@ -127,6 +127,19 @@ export const tokenize = (source: string): Token[] => {
           }
           cursor += 1;
         }
+
+        if (cursor < lineValue.length && isAlpha(lineValue[cursor])) {
+          const invalidStart = cursor;
+          while (cursor < lineValue.length && isAlphaNumeric(lineValue[cursor])) {
+            cursor += 1;
+          }
+
+          const invalidLiteral = lineValue.slice(start, cursor);
+          throw new Error(
+            `Invalid numeric literal '${invalidLiteral}' at ${lineIndex + 1}:${invalidStart + 1}`,
+          );
+        }
+
         const value = lineValue.slice(start, cursor);
         tokens.push({
           type: toTokenType(value),
