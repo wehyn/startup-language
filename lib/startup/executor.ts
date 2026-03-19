@@ -167,7 +167,7 @@ const evalArithmetic = (left: number, right: number, operator: ExpressionOperato
     case "******":
       return left * right;
     case "///":
-      return right === 0 ? 0 : left / right;
+      return left / right;
     default:
       throw new Error(`Unexpected arithmetic operator: ${operator}`);
   }
@@ -241,6 +241,10 @@ const evaluateBinaryExpression = (expression: BinaryExpression, state: RuntimeSt
 
   if (typeof left !== "number" || typeof right !== "number") {
     throw new Error(`Binary expression '${expression.id}' has invalid operands`);
+  }
+
+  if (expression.operator === "///" && right === 0) {
+    throw new Error(`Division by zero at line ${expression.line}`);
   }
 
   return evalArithmetic(left, right, expression.operator);

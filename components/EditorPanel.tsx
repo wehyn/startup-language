@@ -41,9 +41,6 @@ const registerStartupLanguage = (monaco: Monaco) => {
 
     tokenizer: {
       root: [
-        // line comments
-        [/\/\/.*$/, "comment"],
-
         // strings
         [/"[^"]*"/, "string"],
 
@@ -60,6 +57,9 @@ const registerStartupLanguage = (monaco: Monaco) => {
         [/<{3}/, "operator"],
         [/\?{3}/, "operator"],
         [/!!?\?/, "operator"],
+
+        // line comments
+        [/\/\/.*$/, "comment"],
 
         // keywords & identifiers
         [/[a-zA-Z_]\w*/, {
