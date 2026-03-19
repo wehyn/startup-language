@@ -34,6 +34,14 @@ export type SemanticResult = {
   entries: TypeCheckEntry[];
   symbolTable: Record<string, ValueType>;
   issues: SemanticIssue[];
+  logs: SemanticLogEntry[];
+};
+
+export type SemanticLogEntry = {
+  phase: "check" | "bind";
+  message: string;
+  line: number;
+  column: number;
 };
 
 type ScopeState = {
@@ -41,6 +49,22 @@ type ScopeState = {
   classes: Set<string>;
   entries: TypeCheckEntry[];
   issues: SemanticIssue[];
+  logs: SemanticLogEntry[];
+};
+
+const pushSemanticLog = (
+  state: ScopeState,
+  phase: SemanticLogEntry["phase"],
+  message: string,
+  line: number,
+  column: number,
+) => {
+  state.logs.push({
+    phase,
+    message,
+    line,
+    column,
+  });
 };
 
 const literalType = (value: unknown): InferredType => {
@@ -204,6 +228,13 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
   }
 
   if (isDeclarationNode(node)) {
+    pushSemanticLog(
+      state,
+      "check",
+      `[SEM] Checking types for declaration '${node.value.name}' (${node.value.variableType})`,
+      node.line,
+      1,
+    );
     const inferredType = inferExpressionType(node.value.expression, state);
     state.entries.push({
       variable: node.value.name,
@@ -224,11 +255,25 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
     }
 
     state.symbols[node.value.name] = node.value.variableType;
+    pushSemanticLog(
+      state,
+      "bind",
+      `[SEM] Binding '${node.value.name}' -> type=${node.value.variableType} into symbol table`,
+      node.line,
+      1,
+    );
     return;
   }
 
   if (isAssignmentNode(node)) {
     const currentType = state.symbols[node.value.name];
+    pushSemanticLog(
+      state,
+      "check",
+      `[SEM] Checking types for assignment '${node.value.name}' (expected ${currentType ?? "Unknown"})`,
+      node.line,
+      1,
+    );
     const inferredType = inferExpressionType(node.value.expression, state);
 
     if (!currentType) {
@@ -258,6 +303,14 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
         column: 1,
       });
     }
+
+    pushSemanticLog(
+      state,
+      "bind",
+      `[SEM] Binding '${node.value.name}' -> type=${currentType} into symbol table`,
+      node.line,
+      1,
+    );
     return;
   }
 
@@ -275,6 +328,7 @@ export const analyzeSemantics = (ast: ASTNode): SemanticResult => {
     classes: new Set<string>(),
     entries: [],
     issues: [],
+    logs: [],
   };
 
   (ast.children ?? []).forEach((node) => {
@@ -285,5 +339,6 @@ export const analyzeSemantics = (ast: ASTNode): SemanticResult => {
     entries: state.entries,
     symbolTable: state.symbols,
     issues: state.issues,
+    logs: state.logs,
   };
 };

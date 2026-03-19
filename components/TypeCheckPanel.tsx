@@ -1,10 +1,11 @@
 "use client";
 
-import { SemanticIssue, TypeCheckEntry } from "@/lib/startup/semantic";
+import { SemanticIssue, SemanticLogEntry, TypeCheckEntry } from "@/lib/startup/semantic";
 
 type TypeCheckPanelProps = {
   entries: TypeCheckEntry[];
   issues: SemanticIssue[];
+  logs: SemanticLogEntry[];
   embedded?: boolean;
   onIssueSelect?: (line: number, column: number) => void;
 };
@@ -27,6 +28,7 @@ const typeClass = (type: string): string => {
 export function TypeCheckPanel({
   entries,
   issues,
+  logs,
   embedded = false,
   onIssueSelect,
 }: TypeCheckPanelProps) {
@@ -41,7 +43,7 @@ export function TypeCheckPanel({
       {!embedded && (
         <div className="startup-heading mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">Type Check</div>
       )}
-      <div className={embedded ? "grid h-full min-h-0 grid-cols-1 gap-3" : "grid h-[calc(100%-1.25rem)] min-h-0 grid-cols-1 gap-3"}>
+      <div className={embedded ? "grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-rows-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]" : "grid h-[calc(100%-1.25rem)] min-h-0 grid-cols-1 gap-3 lg:grid-rows-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]"}>
         <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
           <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Inference</div>
           <table className="w-full text-left font-mono text-[11px] text-zinc-100">
@@ -105,6 +107,29 @@ export function TypeCheckPanel({
                   <span>{issue.message}</span>
                   <span className="ml-2 text-rose-300/90">-&gt; L{issue.line}:C{issue.column}</span>
                 </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
+          <div className="startup-subheading mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Semantic Explainability</div>
+          <div className="space-y-1 font-mono text-[11px]">
+            {logs.length === 0 ? (
+              <div className="startup-empty rounded px-2 py-1">No semantic logs yet. Type-check and bind messages appear here.</div>
+            ) : (
+              logs.map((log) => (
+                <div
+                  key={`${log.phase}-${log.message}-${log.line}-${log.column}`}
+                  className={`rounded border px-2 py-1 ${
+                    log.phase === "check"
+                      ? "border-sky-300/25 bg-sky-500/10 text-sky-100"
+                      : "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                  }`}
+                >
+                  <span>{log.message}</span>
+                  <span className="ml-2 opacity-80">-&gt; L{log.line}:C{log.column}</span>
+                </div>
               ))
             )}
           </div>
