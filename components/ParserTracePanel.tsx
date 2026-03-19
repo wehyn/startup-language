@@ -26,17 +26,17 @@ export function ParserTracePanel({ trace, activeIndex, onSelect }: ParserTracePa
                   key={step.id}
                   type="button"
                   onClick={() => onSelect(index)}
-                  className={`w-full rounded border px-2 py-1.5 text-left transition ${
+                  className={`w-full rounded border px-2 py-2 text-left transition ${
                     active
                       ? "border-[#60A5FA]/55 bg-[#60A5FA]/14"
                       : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
                   }`}
                 >
                   <div className="mb-0.5 flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] text-zinc-200">{step.rule}</span>
-                    <span className="font-mono text-[10px] text-zinc-500">L{step.line}</span>
+                    <span className="font-mono text-sm text-zinc-200">{step.rule}</span>
+                    <span className="font-mono text-[11px] text-zinc-500">L{step.line}</span>
                   </div>
-                  <div className="font-mono text-[11px] text-zinc-400">{step.description}</div>
+                  <div className="font-mono text-sm text-zinc-400">{step.description}</div>
                 </button>
               );
             })
@@ -49,14 +49,14 @@ export function ParserTracePanel({ trace, activeIndex, onSelect }: ParserTracePa
         {trace.length === 0 ? (
           <div className="startup-empty rounded px-2 py-1.5 font-mono text-xs">No production selected. Choose a parser step to inspect its rule.</div>
         ) : (
-          <div className="space-y-2 font-mono text-xs">
-            <div className="rounded border border-white/10 px-2 py-1 text-zinc-200">
+          <div className="space-y-2 font-mono text-sm">
+            <div className="rounded border border-white/10 px-2 py-2 text-zinc-200">
               {trace[activeIndex]?.rule}
             </div>
-            <div className="rounded border border-white/10 px-2 py-1 text-zinc-400">
+            <div className="rounded border border-white/10 px-2 py-2 text-zinc-400">
               {trace[activeIndex]?.description}
             </div>
-            <div className="rounded border border-white/10 px-2 py-1 text-zinc-500">
+            <div className="rounded border border-white/10 px-2 py-2 text-zinc-500">
               Token Range: {trace[activeIndex]?.startToken ?? 0} - {trace[activeIndex]?.endToken ?? 0}
             </div>
           </div>
