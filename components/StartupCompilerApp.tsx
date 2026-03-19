@@ -133,7 +133,6 @@ export function StartupCompilerApp() {
     "tokens" | "parser" | "runtime" | "state" | "ir" | "scope"
   >("tokens");
   const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
-  const [pitchMode, setPitchMode] = useState(false);
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
@@ -439,10 +438,10 @@ export function StartupCompilerApp() {
   }, [parserIndexForTimeline]);
 
   return (
-    <div className={`startup-shell relative h-[100dvh] overflow-hidden bg-[#090A0D] px-5 py-5 text-white selection:bg-white/20 ${pitchMode ? "startup-pitch-mode" : ""}`}>
+    <div className="startup-shell relative h-[100dvh] overflow-hidden bg-[#090A0D] px-5 py-5 text-white selection:bg-white/20">
       <div className="relative mx-auto flex h-full min-h-0 max-w-[1500px] flex-col gap-4">
         <div className="startup-island rounded-2xl px-4 py-2 text-xs tracking-wide text-zinc-300 backdrop-blur-[10px]">
-          <div className="startup-gap flex flex-wrap items-center justify-between gap-3">
+          <div className="startup-gap flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -463,15 +462,6 @@ export function StartupCompilerApp() {
                 Founder&apos;s Playbook
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setPitchMode((current) => !current)}
-              className={`startup-tab-btn rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
-                pitchMode ? "active" : ""
-              }`}
-            >
-              {pitchMode ? "Pitch Deck Mode On" : "Pitch Deck Mode Off"}
-            </button>
           </div>
         </div>
 
