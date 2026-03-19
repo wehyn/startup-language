@@ -11,7 +11,7 @@ import {
 
 export type ParserTraceStep = {
   id: string;
-  phase: "production" | "node";
+  phase: "production" | "node" | "recovery";
   rule: string;
   description: string;
   line: number;
@@ -63,7 +63,10 @@ class Parser {
     const children: ASTNode[] = [];
 
     while (!this.isAtEnd()) {
-      children.push(this.parseStatement());
+      const statement = this.parseStatement();
+      if (statement) {
+        children.push(statement);
+      }
     }
 
     return {
@@ -80,7 +83,7 @@ class Parser {
     return this.trace;
   }
 
-  private parseStatement(): ASTNode {
+  private parseStatement(): ASTNode | null {
     const token = this.peek();
 
     if (!token) {
@@ -89,6 +92,10 @@ class Parser {
 
     if (token.type === "KEYWORD" && this.isTypeKeyword(token.value)) {
       return this.parseDeclaration();
+    }
+
+    if (token.type === "KEYWORD" && token.value === "CLASS") {
+      return this.parseClass();
     }
 
     if (token.type === "KEYWORD" && token.value === "PIVOT") {
@@ -115,6 +122,21 @@ class Parser {
       return this.parseAssignment();
     }
 
+    if (token.type === "INVALID") {
+      const invalid = this.advance();
+      if (invalid) {
+        this.pushTrace({
+          phase: "recovery",
+          rule: "Panic Mode Recovery",
+          description: `Skipped invalid token '${invalid.value}'`,
+          line: invalid.line,
+          startToken: this.position - 1,
+          endToken: this.position - 1,
+        });
+      }
+      return null;
+    }
+
     throw new Error(`Unexpected token '${token.value}' at ${token.line}:${token.column}`);
   }
 
@@ -125,7 +147,7 @@ class Parser {
     this.validateCamelCase(name);
     this.consume("OPERATOR", "::>");
     const expression = this.parseExpression();
-    this.consume("DELIMITER", "?");
+    this.consumeStatementTerminatorWithRecovery(startToken, `declaration '${name.value}'`);
 
     const node: ASTNode = {
       id: this.makeNodeId("decl"),
@@ -159,7 +181,7 @@ class Parser {
     this.validateCamelCase(name);
     this.consume("OPERATOR", "::>");
     const expression = this.parseExpression();
-    this.consume("DELIMITER", "?");
+    this.consumeStatementTerminatorWithRecovery(startToken, `assignment '${name.value}'`);
 
     const node: ASTNode = {
       id: this.makeNodeId("assign"),
@@ -196,7 +218,10 @@ class Parser {
 
     const children: ASTNode[] = [];
     while (!this.check("DELIMITER", "]") && !this.isAtEnd()) {
-      children.push(this.parseStatement());
+      const statement = this.parseStatement();
+      if (statement) {
+        children.push(statement);
+      }
     }
     this.consume("DELIMITER", "]");
 
@@ -233,7 +258,10 @@ class Parser {
 
     const children: ASTNode[] = [];
     while (!this.check("DELIMITER", "]") && !this.isAtEnd()) {
-      children.push(this.parseStatement());
+      const statement = this.parseStatement();
+      if (statement) {
+        children.push(statement);
+      }
     }
     this.consume("DELIMITER", "]");
 
@@ -423,6 +451,34 @@ class Parser {
       };
     }
 
+    if (token.type === "KEYWORD" && token.value === "NEW") {
+      this.advance();
+      const className = this.consume("IDENTIFIER");
+      this.validatePascalCase(className);
+      return {
+        kind: "NewExpr",
+        className: className.value,
+        line: token.line,
+      };
+    }
+
+    if (token.type === "INVALID") {
+      this.advance();
+      this.pushTrace({
+        phase: "recovery",
+        rule: "Panic Mode Recovery",
+        description: `Skipped invalid token '${token.value}' in expression and substituted 0`,
+        line: token.line,
+        startToken: this.position - 1,
+        endToken: this.position - 1,
+      });
+      return {
+        kind: "Literal",
+        value: 0,
+        line: token.line,
+      };
+    }
+
     if (token.type === "IDENTIFIER") {
       this.advance();
       this.validateCamelCase(token);
@@ -566,7 +622,7 @@ class Parser {
       expression = this.parseExpression();
     }
 
-    this.consume("DELIMITER", "?");
+    this.consumeStatementTerminatorWithRecovery(startToken, "PITCH statement");
 
     const node: ASTNode = {
       id: this.makeNodeId("pitch"),
@@ -601,7 +657,7 @@ class Parser {
       name = token.value;
     }
 
-    this.consume("DELIMITER", "?");
+    this.consumeStatementTerminatorWithRecovery(startToken, "ACQUIRE statement");
 
     const node: ASTNode = {
       id: this.makeNodeId("acquire"),
@@ -628,7 +684,7 @@ class Parser {
   private parseExit(): ASTNode {
     const startToken = this.position;
     const exit = this.consume("KEYWORD", "EXIT");
-    this.consume("DELIMITER", "?");
+    this.consumeStatementTerminatorWithRecovery(startToken, "EXIT statement");
     const node: ASTNode = {
       id: this.makeNodeId("exit"),
       type: "Exit",
@@ -658,10 +714,64 @@ class Parser {
     return value;
   }
 
+  private parseClass(): ASTNode {
+    const startToken = this.position;
+    const classToken = this.consume("KEYWORD", "CLASS");
+    const name = this.consume("IDENTIFIER");
+    this.validatePascalCase(name);
+    this.consumeStatementTerminatorWithRecovery(startToken, `CLASS declaration '${name.value}'`);
+
+    const node: ASTNode = {
+      id: this.makeNodeId("class"),
+      type: "Class",
+      line: classToken.line,
+      startToken,
+      endToken: this.position - 1,
+      value: { name: name.value },
+    };
+
+    this.pushTrace({
+      phase: "node",
+      rule: "Class -> CLASS IDENTIFIER ?",
+      description: `Built CLASS '${name.value}'`,
+      line: classToken.line,
+      startToken,
+      endToken: this.position - 1,
+      nodeId: node.id,
+    });
+
+    return node;
+  }
+
+  private consumeStatementTerminatorWithRecovery(startToken: number, context: string) {
+    if (this.match("DELIMITER", "?")) {
+      return;
+    }
+
+    const lookahead = this.peek();
+    const line = lookahead?.line ?? this.tokens[Math.max(0, this.position - 1)]?.line ?? 1;
+    this.pushTrace({
+      phase: "recovery",
+      rule: "Phrase-Level Recovery",
+      description: `Inserted missing '?' for ${context}`,
+      line,
+      startToken,
+      endToken: Math.max(startToken, this.position - 1),
+    });
+  }
+
   private validateCamelCase(token: Token) {
     if (!/^[a-z][a-zA-Z0-9]*$/.test(token.value)) {
       throw new Error(
         `Identifier '${token.value}' must be camelCase at ${token.line}:${token.column}`,
+      );
+    }
+  }
+
+  private validatePascalCase(token: Token) {
+    if (!/^[A-Z][a-zA-Z0-9]*$/.test(token.value)) {
+      throw new Error(
+        `Identifier '${token.value}' must be PascalCase at ${token.line}:${token.column}`,
       );
     }
   }
@@ -689,9 +799,10 @@ export const parseTokensToAstWithTrace = (
 ): { ast: ASTNode; trace: ParserTraceStep[] } => {
   const parser = new Parser(tokens);
   const ast = parser.parseProgram();
+  const visibleTrace = parser.getTrace().filter((step) => step.phase !== "production");
   return {
     ast,
-    trace: parser.getTrace(),
+    trace: visibleTrace,
   };
 };
 

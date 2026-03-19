@@ -1,10 +1,12 @@
 import {
   ASTNode,
   BranchValue,
+  ClassValue,
   Expression,
   ExpressionOperator,
   ValueType,
   isAssignmentNode,
+  isClassNode,
   isDeclarationNode,
   isIfNode,
   isLoopNode,
@@ -36,6 +38,7 @@ export type SemanticResult = {
 
 type ScopeState = {
   symbols: Record<string, ValueType>;
+  classes: Set<string>;
   entries: TypeCheckEntry[];
   issues: SemanticIssue[];
 };
@@ -95,6 +98,18 @@ const inferExpressionType = (expression: Expression, state: ScopeState): Inferre
   if (expression.kind === "UnaryExpr") {
     inferExpressionType(expression.expression, state);
     return "Equity";
+  }
+
+  if (expression.kind === "NewExpr") {
+    if (!state.classes.has(expression.className)) {
+      state.issues.push({
+        source: "semantic",
+        message: `Instantiation uses undefined class '${expression.className}'`,
+        line: expression.line,
+        column: 1,
+      });
+    }
+    return "Vibe";
   }
 
   const leftType = inferExpressionType(expression.left, state);
@@ -182,6 +197,12 @@ const inferBranchCondition = (value: BranchValue, state: ScopeState, line: numbe
 };
 
 const walkNode = (node: ASTNode, state: ScopeState) => {
+  if (isClassNode(node)) {
+    const classNode = node.value as ClassValue;
+    state.classes.add(classNode.name);
+    return;
+  }
+
   if (isDeclarationNode(node)) {
     const inferredType = inferExpressionType(node.value.expression, state);
     state.entries.push({
@@ -251,6 +272,7 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
 export const analyzeSemantics = (ast: ASTNode): SemanticResult => {
   const state: ScopeState = {
     symbols: {},
+    classes: new Set<string>(),
     entries: [],
     issues: [],
   };

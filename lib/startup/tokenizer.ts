@@ -1,5 +1,14 @@
 import { Token, TokenType } from "./types";
 
+export type TokenRecovery = {
+  id: string;
+  strategy: "panic";
+  message: string;
+  line: number;
+  column: number;
+  endColumn: number;
+};
+
 export class TokenizerError extends Error {
   readonly line: number;
 
@@ -21,6 +30,8 @@ const KEYWORD_CANONICAL = new Map<string, string>([
   ["VIBE", "Vibe"],
   ["EQUITY", "Equity"],
   ["PORTFOLIO", "Portfolio"],
+  ["CLASS", "CLASS"],
+  ["NEW", "NEW"],
 ]);
 const KEYWORDS = new Set([
   ...KEYWORD_CANONICAL.values(),
@@ -29,6 +40,8 @@ const KEYWORDS = new Set([
   "PITCH",
   "ACQUIRE",
   "EXIT",
+  "CLASS",
+  "NEW",
   "AND",
   "OR",
   "NOT",
@@ -36,13 +49,27 @@ const KEYWORDS = new Set([
   "CLIFF",
 ]);
 const OPERATORS = ["******", "::>", "+++", "---", "///", ">>>", "<<<", "???", "!!?"];
-const DELIMITERS = new Set(["(", ")", "[", "]", "?", ","]);
+const DELIMITERS = new Set(["(", ")", "[", "]", "?", ",", ".", "~", "+", "-", "*", "/"]);
 
 const isAlpha = (char: string) => /[a-zA-Z_]/.test(char);
 const isDigit = (char: string) => /[0-9]/.test(char);
 const isAlphaNumeric = (char: string) => /[a-zA-Z0-9_]/.test(char);
 
-const normalizeKeyword = (value: string): string => KEYWORD_CANONICAL.get(value) ?? value;
+const normalizeKeyword = (value: string): string => KEYWORD_CANONICAL.get(value.toUpperCase()) ?? value;
+
+const normalizeOperator = (value: string): string => {
+  if (value === "~") return "::>";
+  if (value === "+") return "+++";
+  if (value === "-") return "---";
+  if (value === "*") return "******";
+  if (value === "/") return "///";
+  return value;
+};
+
+const normalizeDelimiter = (value: string): string => {
+  if (value === ".") return "?";
+  return value;
+};
 
 const toTokenType = (value: string): TokenType => {
   if (KEYWORDS.has(value)) {
@@ -65,8 +92,30 @@ const toTokenType = (value: string): TokenType => {
 };
 
 export const tokenize = (source: string): Token[] => {
+  const { tokens } = tokenizeWithRecovery(source);
+  return tokens;
+};
+
+export const tokenizeWithRecovery = (source: string): { tokens: Token[]; recoveries: TokenRecovery[] } => {
   const tokens: Token[] = [];
+  const recoveries: TokenRecovery[] = [];
+  let recoveryCounter = 1;
   const lines = source.split("\n");
+
+  const pushPanicRecovery = (
+    message: string,
+    details: { line: number; column: number; endColumn?: number },
+  ) => {
+    recoveries.push({
+      id: `tok_recovery_${recoveryCounter}`,
+      strategy: "panic",
+      message,
+      line: details.line,
+      column: details.column,
+      endColumn: details.endColumn ?? details.column + 1,
+    });
+    recoveryCounter += 1;
+  };
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const lineValue = lines[lineIndex];
@@ -87,11 +136,22 @@ export const tokenize = (source: string): Token[] => {
           cursor += 1;
         }
         if (cursor >= lineValue.length) {
-          throw new TokenizerError(`Unterminated string at ${lineIndex + 1}:${start + 1}`, {
+          const invalidLiteral = lineValue.slice(start);
+          tokens.push({
+            type: "INVALID",
+            value: invalidLiteral,
             line: lineIndex + 1,
             column: start + 1,
-            endColumn: lineValue.length + 1,
           });
+          pushPanicRecovery(
+            `Panic Mode: unterminated string '${invalidLiteral}' skipped at ${lineIndex + 1}:${start + 1}`,
+            {
+              line: lineIndex + 1,
+              column: start + 1,
+              endColumn: lineValue.length + 1,
+            },
+          );
+          break;
         }
         const value = lineValue.slice(start + 1, cursor);
         tokens.push({
@@ -107,9 +167,10 @@ export const tokenize = (source: string): Token[] => {
       const op = OPERATORS.find((candidate) => lineValue.startsWith(candidate, cursor));
 
       if (op) {
+        const normalizedOperator = normalizeOperator(op);
         tokens.push({
-          type: "OPERATOR",
-          value: op,
+          type: toTokenType(normalizedOperator),
+          value: normalizedOperator,
           line: lineIndex + 1,
           column: cursor + 1,
         });
@@ -122,9 +183,15 @@ export const tokenize = (source: string): Token[] => {
       }
 
       if (DELIMITERS.has(char)) {
+        const normalizedDelimiter = normalizeDelimiter(char);
+        const normalizedOperator = normalizeOperator(char);
+        const tokenValue =
+          normalizedDelimiter !== char || normalizedDelimiter === "?"
+            ? normalizedDelimiter
+            : normalizedOperator;
         tokens.push({
-          type: "DELIMITER",
-          value: char,
+          type: toTokenType(tokenValue),
+          value: tokenValue,
           line: lineIndex + 1,
           column: cursor + 1,
         });
@@ -137,7 +204,12 @@ export const tokenize = (source: string): Token[] => {
         let hasDot = false;
         while (cursor < lineValue.length) {
           const nextChar = lineValue[cursor];
-          if (nextChar === "." && !hasDot) {
+          if (
+            nextChar === "."
+            && !hasDot
+            && cursor + 1 < lineValue.length
+            && isDigit(lineValue[cursor + 1])
+          ) {
             hasDot = true;
             cursor += 1;
             continue;
@@ -155,14 +227,21 @@ export const tokenize = (source: string): Token[] => {
           }
 
           const invalidLiteral = lineValue.slice(start, cursor);
-          throw new TokenizerError(
-            `Invalid numeric literal '${invalidLiteral}' at ${lineIndex + 1}:${invalidStart + 1}`,
+          tokens.push({
+            type: "INVALID",
+            value: invalidLiteral,
+            line: lineIndex + 1,
+            column: start + 1,
+          });
+          pushPanicRecovery(
+            `Panic Mode: invalid numeric literal '${invalidLiteral}' skipped at ${lineIndex + 1}:${invalidStart + 1}`,
             {
               line: lineIndex + 1,
               column: start + 1,
               endColumn: start + invalidLiteral.length + 1,
             },
           );
+          continue;
         }
 
         const value = lineValue.slice(start, cursor);
@@ -190,12 +269,22 @@ export const tokenize = (source: string): Token[] => {
         continue;
       }
 
-      throw new TokenizerError(`Unexpected token '${char}' at ${lineIndex + 1}:${cursor + 1}`, {
+      tokens.push({
+        type: "INVALID",
+        value: char,
         line: lineIndex + 1,
         column: cursor + 1,
       });
+      pushPanicRecovery(
+        `Panic Mode: invalid token '${char}' skipped at ${lineIndex + 1}:${cursor + 1}`,
+        {
+          line: lineIndex + 1,
+          column: cursor + 1,
+        },
+      );
+      cursor += 1;
     }
   }
 
-  return tokens;
+  return { tokens, recoveries };
 };
