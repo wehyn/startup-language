@@ -18,6 +18,7 @@ type EditorPanelProps = {
   activeLine: number;
   selectedLine: number | null;
   hoverRange: HoverRange | null;
+  errorRange: HoverRange | null;
 };
 
 let languageRegistered = false;
@@ -102,7 +103,14 @@ const registerStartupLanguage = (monaco: Monaco) => {
   });
 };
 
-export function EditorPanel({ value, onChange, activeLine, selectedLine, hoverRange }: EditorPanelProps) {
+export function EditorPanel({
+  value,
+  onChange,
+  activeLine,
+  selectedLine,
+  hoverRange,
+  errorRange,
+}: EditorPanelProps) {
   const editorRef = useRef<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorationRef = useRef<string[]>([]);
@@ -151,8 +159,22 @@ export function EditorPanel({ value, onChange, activeLine, selectedLine, hoverRa
       });
     }
 
+    if (errorRange) {
+      decorations.push({
+        range: new monaco.Range(
+          errorRange.startLine,
+          errorRange.startColumn,
+          errorRange.endLine,
+          errorRange.endColumn,
+        ),
+        options: {
+          className: "startup-error-span",
+        },
+      });
+    }
+
     decorationRef.current = editor.deltaDecorations(decorationRef.current, decorations);
-  }, [activeLine, hoverRange, selectedLine]);
+  }, [activeLine, errorRange, hoverRange, selectedLine]);
 
   const handleBeforeMount = (monaco: Monaco) => {
     registerStartupLanguage(monaco);

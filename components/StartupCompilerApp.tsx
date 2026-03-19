@@ -125,6 +125,30 @@ const findErrorNodeIds = (ast: ASTNode | null, line: number | null): string[] =>
   return nearest ? [nearest.id] : [];
 };
 
+const rangeFromTokenSpan = (
+  tokens: Token[],
+  startToken: number | null,
+  endToken: number | null,
+): HoverRange | null => {
+  if (startToken === null || endToken === null) {
+    return null;
+  }
+
+  const start = tokens[startToken];
+  const end = tokens[endToken] ?? start;
+
+  if (!start || !end) {
+    return null;
+  }
+
+  return {
+    startLine: start.line,
+    startColumn: start.column,
+    endLine: end.line,
+    endColumn: end.column + end.value.length,
+  };
+};
+
 const playbookTokenClass = (token: string): string => {
   if (["BURN", "VIBE", "EQUITY", "PORTFOLIO", "Burn", "Vibe", "Equity", "Portfolio"].includes(token)) {
     if (token === "BURN" || token === "Burn") return "text-[#60A5FA]";
@@ -535,6 +559,11 @@ export function StartupCompilerApp() {
     setParserStepIndex(parserIndexForTimeline);
   }, [parserIndexForTimeline]);
 
+  const parserErrorRange = useMemo(
+    () => rangeFromTokenSpan(pipeline.tokens, pipeline.errorStartToken, pipeline.errorEndToken),
+    [pipeline.errorEndToken, pipeline.errorStartToken, pipeline.tokens],
+  );
+
   const diagnostics = [
     {
       id: "tokens" as const,
@@ -640,6 +669,7 @@ export function StartupCompilerApp() {
                   activeLine={activeStep?.line ?? 1}
                   selectedLine={selectedLine}
                   hoverRange={hoverRange}
+                  errorRange={parserErrorRange}
                 />
 
                 <ASTPanel

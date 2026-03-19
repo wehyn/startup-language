@@ -52,6 +52,12 @@ body {
   border-radius: 2px;
 }
 
+.startup-error-span {
+  background: rgba(251, 113, 133, 0.22);
+  border-bottom: 1px solid rgba(251, 113, 133, 0.7);
+  border-radius: 2px;
+}
+
 @keyframes run-code-pulse {
   0% {
     transform: translateY(0);
