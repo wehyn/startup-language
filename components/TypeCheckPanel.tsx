@@ -3,10 +3,21 @@
 import { SemanticIssue, SemanticLogEntry, TypeCheckEntry } from "@/lib/startup/semantic";
 import { useState } from "react";
 
+type ExplainabilityEvent = {
+  id: string;
+  category: "semantic" | "recovery";
+  phase: "check" | "bind" | "phrase" | "panic";
+  sourceStage: "semantic" | "tokenizer" | "parser";
+  message: string;
+  line: number;
+  column: number;
+};
+
 type TypeCheckPanelProps = {
   entries: TypeCheckEntry[];
   issues: SemanticIssue[];
   logs: SemanticLogEntry[];
+  explainabilityEvents?: ExplainabilityEvent[];
   view?: "all" | "types" | "inference" | "errors" | "logs";
   embedded?: boolean;
   onIssueSelect?: (line: number, column: number) => void;
@@ -31,12 +42,25 @@ export function TypeCheckPanel({
   entries,
   issues,
   logs,
+  explainabilityEvents,
   view = "all",
   embedded = false,
   onIssueSelect,
 }: TypeCheckPanelProps) {
   const [showAllLogs, setShowAllLogs] = useState(false);
-  const visibleLogs = showAllLogs ? logs : logs.slice(-5);
+  const normalizedExplainabilityEvents: ExplainabilityEvent[] = explainabilityEvents
+    ?? logs.map((log, index) => ({
+      id: `semantic-${index}-${log.phase}-${log.line}-${log.column}`,
+      category: "semantic",
+      phase: log.phase,
+      sourceStage: "semantic",
+      message: log.message,
+      line: log.line,
+      column: log.column,
+    }));
+  const visibleLogs = showAllLogs
+    ? normalizedExplainabilityEvents
+    : normalizedExplainabilityEvents.slice(-5);
   const compactEmbedded = embedded && view !== "all";
 
   const showInference = view === "all" || view === "types" || view === "inference";
@@ -145,7 +169,7 @@ export function TypeCheckPanel({
         <div className={sectionClass}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="startup-subheading text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Semantic Explainability</div>
-            {logs.length > 5 && (
+            {normalizedExplainabilityEvents.length > 5 && (
               <button
                 type="button"
                 onClick={() => setShowAllLogs((current) => !current)}
@@ -156,21 +180,33 @@ export function TypeCheckPanel({
             )}
           </div>
           <div className="min-h-0 overflow-auto space-y-2 font-mono text-sm">
-            {logs.length === 0 ? (
-              <div className="startup-empty rounded px-2 py-1">No semantic logs yet. Type-check and bind messages appear here.</div>
+            {normalizedExplainabilityEvents.length === 0 ? (
+              <div className="startup-empty rounded px-2 py-1">No explainability logs yet. Semantic and recovery traces appear here.</div>
             ) : (
               visibleLogs.map((log) => (
-                <div
-                  key={`${log.phase}-${log.message}-${log.line}-${log.column}`}
-                  className={`rounded border px-2 py-2 ${
-                    log.phase === "check"
-                      ? "border-sky-300/25 bg-sky-500/10 text-sky-100"
-                      : "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                <button
+                  key={log.id}
+                  type="button"
+                  onClick={() => onIssueSelect?.(log.line, log.column)}
+                  className={`w-full rounded border px-2 py-2 text-left ${
+                    log.category === "recovery"
+                      ? "border-amber-300/25 bg-amber-500/10 text-amber-100 hover:border-amber-200/60 hover:bg-amber-500/15"
+                      : log.phase === "check"
+                        ? "border-sky-300/25 bg-sky-500/10 text-sky-100 hover:border-sky-200/60 hover:bg-sky-500/15"
+                        : "border-emerald-300/25 bg-emerald-500/10 text-emerald-100 hover:border-emerald-200/60 hover:bg-emerald-500/15"
                   }`}
                 >
+                  <div className="mb-1 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em]">
+                    <span className="rounded border border-white/20 bg-black/20 px-1.5 py-0.5">
+                      {log.category === "recovery" ? `Recovery ${log.phase}` : `Semantic ${log.phase}`}
+                    </span>
+                    <span className="rounded border border-white/20 bg-black/20 px-1.5 py-0.5">
+                      {log.sourceStage}
+                    </span>
+                  </div>
                   <span className="block break-words">{log.message}</span>
                   <span className="ml-2 opacity-80">-&gt; L{log.line}:C{log.column}</span>
-                </div>
+                </button>
               ))
             )}
           </div>
