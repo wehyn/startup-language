@@ -40,6 +40,16 @@ type PipelineResult = {
   error: string | null;
 };
 
+type ExplainabilityEvent = {
+  id: string;
+  category: "semantic" | "recovery";
+  phase: "check" | "bind" | "phrase" | "panic";
+  sourceStage: "semantic" | "tokenizer" | "parser";
+  message: string;
+  line: number;
+  column: number;
+};
+
 const emptySemantic: SemanticResult = {
   entries: [],
   symbolTable: {},
@@ -350,6 +360,7 @@ export function StartupCompilerApp() {
       const tokenizerTrace = tokenized.recoveries.map((recovery): ParserTraceStep => ({
         id: recovery.id,
         phase: "recovery",
+        sourceStage: "tokenizer",
         rule: "Panic Mode Recovery",
         description: recovery.message,
         line: recovery.line,
@@ -555,6 +566,40 @@ export function StartupCompilerApp() {
     pipeline.errorLine,
     pipeline.semantic.issues,
   ]);
+
+  const explainabilityEvents = useMemo<ExplainabilityEvent[]>(() => {
+    const semanticEvents: ExplainabilityEvent[] = pipeline.semantic.logs.map((log, index) => ({
+      id: `sem-${index}-${log.phase}-${log.line}-${log.column}`,
+      category: "semantic",
+      phase: log.phase,
+      sourceStage: "semantic",
+      message: log.message,
+      line: log.line,
+      column: log.column,
+    }));
+
+    const recoveryEvents: ExplainabilityEvent[] = pipeline.parserTrace
+      .filter((step) => step.phase === "recovery")
+      .map((step, index) => ({
+        id: `recovery-${step.id}-${index}`,
+        category: "recovery",
+        phase: step.rule.includes("Phrase") ? "phrase" : "panic",
+        sourceStage: step.sourceStage ?? "parser",
+        message: step.description,
+        line: step.line,
+        column: 1,
+      }));
+
+    return [...semanticEvents, ...recoveryEvents].sort((a, b) => {
+      if (a.line !== b.line) {
+        return a.line - b.line;
+      }
+      if (a.column !== b.column) {
+        return a.column - b.column;
+      }
+      return a.id.localeCompare(b.id);
+    });
+  }, [pipeline.parserTrace, pipeline.semantic.logs]);
 
   const jumpToNextIssue = useCallback(() => {
     if (mappedErrors.length === 0) {
@@ -1181,6 +1226,7 @@ export function StartupCompilerApp() {
                                 entries={pipeline.semantic.entries}
                                 issues={pipeline.semantic.issues}
                                 logs={pipeline.semantic.logs}
+                                explainabilityEvents={explainabilityEvents}
                                 onIssueSelect={(line, column) => {
                                   focusSourceLocation(line, column);
                                   setBottomTab("tokens");

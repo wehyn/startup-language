@@ -12,6 +12,7 @@ import {
 export type ParserTraceStep = {
   id: string;
   phase: "production" | "node" | "recovery";
+  sourceStage?: "tokenizer" | "parser";
   rule: string;
   description: string;
   line: number;
@@ -783,6 +784,7 @@ class Parser {
   private pushTrace(step: Omit<ParserTraceStep, "id">) {
     this.trace.push({
       ...step,
+      sourceStage: step.sourceStage ?? "parser",
       id: `parse_${this.traceCounter}`,
     });
     this.traceCounter += 1;
