@@ -1,8 +1,15 @@
-export const PRELOADED_DEMO = `BURN runway ::> 18?
-VIBE mission ::> "Build calm tools"?
-EQUITY vested ::> VESTED?
-BURN focus ::> 100?
-
-PITCH mission?
-PITCH runway?
-PITCH focus?`;
+export const PRELOADED_DEMO = `CLASS Founder [
+  METHOD intro() [
+    VIBE note ::> "inside method scope"?
+    PITCH note?
+  ]
+] 
+VIBE ceo ::> NEW Founder?
+BURN runway ::> 18?
+CALL ceo intro()?
+PITCH ceo?
+PIVOT (runway >>> 12) [
+  VIBE stage ::> "seed"?
+  PITCH stage?
+]
+PITCH runway?`;

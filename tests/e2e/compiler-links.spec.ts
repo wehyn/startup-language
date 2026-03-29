@@ -8,11 +8,11 @@ const timelineFixture = readFileSync(resolve(process.cwd(), "tests/e2e/fixtures/
 
 const appUrlWithSource = (source: string) => `/?source=${encodeURIComponent(source)}`;
 
-test("runtime diagnostic opens errors pane", async ({ page }) => {
+test("runtime diagnostic opens events pane", async ({ page }) => {
   await page.goto(appUrlWithSource(parserFixture));
   await page.getByTestId("diagnostic-execution").click();
   await expect(page.getByTestId("bottom-tab-runtime")).toHaveClass(/active/);
-  await expect(page.getByTestId("runtime-tab-errors")).toHaveClass(/active/);
+  await expect(page.getByTestId("runtime-tab-events")).toHaveClass(/active/);
 });
 
 test("token click highlights token row", async ({ page }) => {
@@ -44,7 +44,7 @@ test("parser fixture shows parser diagnostic count", async ({ page }) => {
 test("semantic fixture shows semantic issue in state panel", async ({ page }) => {
   await page.goto(appUrlWithSource(semanticFixture));
   await expect(page.getByTestId("diagnostic-semantic")).toContainText("1");
-  await page.getByTestId("diagnostic-semantic").click();
-  await page.getByRole("button", { name: "Type Check" }).click();
-  await expect(page.getByTestId("type-issue-1-1")).toBeVisible();
+  await page.getByTestId("bottom-tab-runtime").click();
+  await page.getByTestId("runtime-tab-events").click();
+  await expect(page.getByTestId("runtime-event-card-semantic-issue-1-1")).toBeVisible();
 });

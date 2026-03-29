@@ -18,6 +18,8 @@ export type ASTNodeType =
   | "Declaration"
   | "Assignment"
   | "Class"
+  | "Method"
+  | "Call"
   | "If"
   | "Loop"
   | "Pitch"
@@ -147,6 +149,15 @@ export type ClassValue = {
   name: string;
 };
 
+export type MethodValue = {
+  name: string;
+};
+
+export type CallValue = {
+  instanceName: string;
+  methodName: string;
+};
+
 export type PitchValue = {
   expression?: Expression;
 };
@@ -167,6 +178,12 @@ export const isAssignmentNode = (node: ASTNode): node is ASTNode & { value: Assi
 
 export const isClassNode = (node: ASTNode): node is ASTNode & { value: ClassValue } =>
   node.type === "Class";
+
+export const isMethodNode = (node: ASTNode): node is ASTNode & { value: MethodValue; children: ASTNode[] } =>
+  node.type === "Method";
+
+export const isCallNode = (node: ASTNode): node is ASTNode & { value: CallValue } =>
+  node.type === "Call";
 
 export const isIfNode = (node: ASTNode): node is ASTNode & { value: BranchValue; children: ASTNode[] } =>
   node.type === "If";

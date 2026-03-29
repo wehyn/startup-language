@@ -64,7 +64,7 @@ export function TypeCheckPanel({
   const compactEmbedded = embedded && view !== "all";
 
   const showInference = view === "all" || view === "types" || view === "inference";
-  const showErrors = view === "all" || view === "types" || view === "errors";
+  const showErrors = view === "all" || view === "errors";
   const showLogs = view === "all" || view === "logs";
   const sideBySideTypeView = compactEmbedded && showInference && showErrors && !showLogs;
   const sectionClass = compactEmbedded

@@ -85,6 +85,10 @@ const formatNodeLabel = (type: ASTNode["type"]): string => {
   switch (type) {
     case "Class":
       return "CLASS";
+    case "Method":
+      return "METHOD";
+    case "Call":
+      return "CALL";
     case "Pitch":
       return "PITCH";
     case "Acquire":

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ASTPanel } from "@/components/ASTPanel";
 import { EditorPanel, HoverRange } from "@/components/EditorPanel";
@@ -48,6 +48,16 @@ type ExplainabilityEvent = {
   message: string;
   line: number;
   column: number;
+};
+
+type RuntimeEvent = {
+  id: string;
+  category: "EXEC" | "SEMANTIC" | "COMPILER" | "RECOVERY";
+  message: string;
+  line: number | null;
+  column: number | null;
+  tone: "exec" | "semantic" | "compiler" | "recovery";
+  testId: string;
 };
 
 const emptySemantic: SemanticResult = {
@@ -169,7 +179,7 @@ const playbookTokenClass = (token: string): string => {
     return "text-[#A78BFA]";
   }
 
-  if (["PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "CLASS", "NEW", "AND", "OR", "NOT"].includes(token)) {
+  if (["PIVOT", "SPRINT", "PITCH", "ACQUIRE", "EXIT", "CLASS", "METHOD", "CALL", "NEW", "AND", "OR", "NOT"].includes(token)) {
     return "text-[#93C5FD]";
   }
 
@@ -224,14 +234,16 @@ export function StartupCompilerApp() {
   const [bottomTab, setBottomTab] = useState<
     "tokens" | "parser" | "runtime" | "state" | "ir"
   >("runtime");
-  const [runtimeTab, setRuntimeTab] = useState<"events" | "output" | "errors">("events");
-  const [statePaneTab, setStatePaneTab] = useState<"cap" | "scope" | "types" | "explain">("cap");
+  const [runtimeTab, setRuntimeTab] = useState<"events" | "output">("events");
+  const [statePaneTab, setStatePaneTab] = useState<"state" | "scope">("state");
   const [diagnosticsExpanded, setDiagnosticsExpanded] = useState(false);
   const [parserShowAll, setParserShowAll] = useState(false);
   const [selectedAstNodeId, setSelectedAstNodeId] = useState<string | null>(null);
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [parserStepIndex, setParserStepIndex] = useState(0);
   const [issueJumpIndex, setIssueJumpIndex] = useState(-1);
+  const [runtimeEventsFilter, setRuntimeEventsFilter] = useState<"all" | "issues" | "exec">("all");
+  const firstSemanticAutoFocusKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -298,7 +310,9 @@ export function StartupCompilerApp() {
       title: "Object Basics",
       items: [
         "Class declaration: CLASS Startup?",
+        "Class with method: CLASS Startup [ METHOD intro() [ PITCH \"hello\"? ] ]",
         "Instantiation: VIBE founderTool ::> NEW Startup?",
+        "Method call: CALL founderTool intro()?",
       ],
     },
     {
@@ -444,10 +458,6 @@ export function StartupCompilerApp() {
   }, [source]);
 
   const activeStep = stepAt(pipeline.timeline, stepIndex);
-  const logTimeline = pipeline.timeline.slice(0, stepIndex + 1).map((step) => step.log);
-  const executionLog = pipeline.error
-    ? `[ERROR] ${pipeline.error}`
-    : logTimeline.join("\n");
   const terminalOutput = pipeline.error
     ? []
     : activeStep?.output ?? [];
@@ -524,7 +534,7 @@ export function StartupCompilerApp() {
 
     if (stage === "execution") {
       setBottomTab("runtime");
-      setRuntimeTab("errors");
+      setRuntimeTab("events");
       if (pipeline.errorLine !== null) {
         focusSourceLocation(pipeline.errorLine, pipeline.errorColumn);
       }
@@ -601,6 +611,169 @@ export function StartupCompilerApp() {
     });
   }, [pipeline.parserTrace, pipeline.semantic.logs]);
 
+  const runtimeEvents = useMemo<RuntimeEvent[]>(() => {
+    const executionEvents: RuntimeEvent[] = pipeline.timeline
+      .slice(0, stepIndex + 1)
+      .map((step, index) => ({
+        id: `exec-${step.stepId}-${index}`,
+        category: "EXEC",
+        message: step.log.replace(/^\[[A-Z]+\]\s*/, ""),
+        line: step.line,
+        column: null,
+        tone: "exec",
+        testId: `runtime-event-card-exec-${step.stepId}`,
+      }));
+
+    const semanticIssueEvents: RuntimeEvent[] = mappedErrors
+      .filter((entry) => entry.kind === "semantic")
+      .map((entry) => ({
+        id: `semantic-issue-${entry.key}`,
+        category: "SEMANTIC",
+        message: entry.label,
+        line: entry.line,
+        column: entry.column,
+        tone: "semantic",
+        testId: `runtime-event-card-semantic-issue-${entry.line}-${entry.column ?? 0}`,
+      }));
+
+    const compilerIssueEvents: RuntimeEvent[] = mappedErrors
+      .filter((entry) => entry.kind === "compiler")
+      .map((entry) => ({
+        id: `compiler-issue-${entry.key}`,
+        category: "COMPILER",
+        message: entry.label,
+        line: entry.line,
+        column: entry.column,
+        tone: "compiler",
+        testId: `runtime-event-card-compiler-issue-${entry.line}-${entry.column ?? 0}`,
+      }));
+
+    const recoveryEvents: RuntimeEvent[] = explainabilityEvents
+      .filter((event) => event.category === "recovery")
+      .map((event) => ({
+        id: `recovery-${event.id}`,
+        category: "RECOVERY",
+        message: event.message,
+        line: event.line,
+        column: event.column,
+        tone: "recovery",
+        testId: `runtime-event-card-recovery-${event.id}`,
+      }));
+
+    const semanticTraceEvents: RuntimeEvent[] = explainabilityEvents
+      .filter((event) => event.category === "semantic")
+      .map((event) => ({
+        id: `semantic-trace-${event.id}`,
+        category: "SEMANTIC",
+        message: event.message,
+        line: event.line,
+        column: event.column,
+        tone: "semantic",
+        testId: `runtime-event-card-semantic-trace-${event.id}`,
+      }));
+
+    const runtimeErrorEvent: RuntimeEvent[] =
+      pipeline.errorStage === "execution" && pipeline.error
+        ? [
+            {
+              id: "runtime-execution-error",
+              category: "COMPILER",
+              message: pipeline.error,
+              line: pipeline.errorLine,
+              column: pipeline.errorColumn,
+              tone: "compiler",
+              testId: `runtime-event-card-runtime-error-${pipeline.errorLine ?? 0}-${pipeline.errorColumn ?? 0}`,
+            },
+          ]
+        : [];
+
+    return [
+      ...executionEvents,
+      ...runtimeErrorEvent,
+      ...compilerIssueEvents,
+      ...semanticIssueEvents,
+      ...recoveryEvents,
+      ...semanticTraceEvents,
+    ];
+  }, [
+    explainabilityEvents,
+    mappedErrors,
+    pipeline.error,
+    pipeline.errorColumn,
+    pipeline.errorLine,
+    pipeline.errorStage,
+    pipeline.timeline,
+    stepIndex,
+  ]);
+
+  const runtimeIssueEvents = useMemo(
+    () => runtimeEvents.filter((event) => event.category === "SEMANTIC" || event.category === "COMPILER" || event.category === "RECOVERY"),
+    [runtimeEvents],
+  );
+
+  const runtimeExecEvents = useMemo(
+    () => runtimeEvents.filter((event) => event.category === "EXEC"),
+    [runtimeEvents],
+  );
+
+  const visibleRuntimeEvents = useMemo(() => {
+    if (runtimeEventsFilter === "issues") {
+      return runtimeIssueEvents;
+    }
+
+    if (runtimeEventsFilter === "exec") {
+      return runtimeExecEvents;
+    }
+
+    return runtimeEvents;
+  }, [runtimeEvents, runtimeEventsFilter, runtimeExecEvents, runtimeIssueEvents]);
+
+  const focusRuntimeEvent = useCallback((event: RuntimeEvent) => {
+    if (event.line !== null) {
+      focusSourceLocation(event.line, event.column);
+    }
+
+    if (event.category === "SEMANTIC") {
+      setBottomTab("state");
+      setStatePaneTab("state");
+      return;
+    }
+
+    if (event.category === "RECOVERY") {
+      setBottomTab("parser");
+      return;
+    }
+
+    if (event.category === "COMPILER" && pipeline.errorStage === "execution") {
+      setBottomTab("runtime");
+      setRuntimeTab("events");
+      return;
+    }
+
+    if (event.line !== null) {
+      setBottomTab("tokens");
+    }
+  }, [focusSourceLocation, pipeline.errorStage]);
+
+  const firstSemanticIssue = pipeline.semantic.issues[0] ?? null;
+
+  useEffect(() => {
+    if (!firstSemanticIssue) {
+      firstSemanticAutoFocusKeyRef.current = null;
+      return;
+    }
+
+    const issueKey = `${source}::${firstSemanticIssue.line}:${firstSemanticIssue.column ?? 0}:${firstSemanticIssue.message}`;
+    if (firstSemanticAutoFocusKeyRef.current === issueKey) {
+      return;
+    }
+
+    firstSemanticAutoFocusKeyRef.current = issueKey;
+    setBottomTab("state");
+    setStatePaneTab("state");
+    focusSourceLocation(firstSemanticIssue.line, firstSemanticIssue.column);
+  }, [firstSemanticIssue, focusSourceLocation, source]);
+
   const jumpToNextIssue = useCallback(() => {
     if (mappedErrors.length === 0) {
       return;
@@ -619,7 +792,7 @@ export function StartupCompilerApp() {
 
     if (pipeline.errorStage === "execution") {
       setBottomTab("runtime");
-      setRuntimeTab("errors");
+      setRuntimeTab("events");
       return;
     }
 
@@ -1054,7 +1227,6 @@ export function StartupCompilerApp() {
                         {[
                           { id: "events", label: "Events" },
                           { id: "output", label: "Output" },
-                          { id: "errors", label: "Errors" },
                         ].map((tab) => {
                           const active = runtimeTab === tab.id;
                           return (
@@ -1072,10 +1244,90 @@ export function StartupCompilerApp() {
                       </div>
 
                       {runtimeTab === "events" && (
-                        <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-3 font-mono text-sm text-zinc-100">
-                          {executionLog.length > 0
-                            ? executionLog
-                            : "Run a phase to generate runtime events and execution traces."}
+                        <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
+                          <div className="mb-2 flex flex-wrap items-center gap-2 border-b border-white/10 pb-2">
+                            <button
+                              type="button"
+                              onClick={() => setRuntimeEventsFilter("all")}
+                              data-testid="runtime-events-toggle-all"
+                              className={`startup-tab-btn rounded px-2 py-1 text-[10px] uppercase tracking-[0.12em] ${runtimeEventsFilter === "all" ? "active" : ""}`}
+                            >
+                              All events
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRuntimeEventsFilter("issues")}
+                              data-testid="runtime-events-toggle-issues-only"
+                              className={`startup-tab-btn rounded px-2 py-1 text-[10px] uppercase tracking-[0.12em] ${runtimeEventsFilter === "issues" ? "active" : ""}`}
+                            >
+                              Issues only
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRuntimeEventsFilter("exec")}
+                              data-testid="runtime-events-toggle-exec-only"
+                              className={`startup-tab-btn rounded px-2 py-1 text-[10px] uppercase tracking-[0.12em] ${runtimeEventsFilter === "exec" ? "active" : ""}`}
+                            >
+                              Exec only
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {visibleRuntimeEvents.length === 0 ? (
+                              <div className="startup-empty rounded px-2 py-1 font-mono text-xs">
+                                {runtimeEventsFilter === "issues"
+                                  ? "No issue events yet. Run a phase to surface semantic, compiler, or recovery issues."
+                                  : runtimeEventsFilter === "exec"
+                                    ? "No execution events yet. Step through execution to generate runtime traces."
+                                    : "Run a phase to generate runtime events and execution traces."}
+                              </div>
+                            ) : (
+                              visibleRuntimeEvents.map((event) => {
+                                const toneClass =
+                                  event.tone === "compiler"
+                                    ? "border-rose-300/30 bg-rose-500/10 text-rose-100 hover:border-rose-200/60 hover:bg-rose-500/15"
+                                    : event.tone === "semantic"
+                                      ? "border-fuchsia-300/30 bg-fuchsia-500/10 text-fuchsia-100 hover:border-fuchsia-200/60 hover:bg-fuchsia-500/15"
+                                      : event.tone === "recovery"
+                                        ? "border-amber-300/30 bg-amber-500/10 text-amber-100 hover:border-amber-200/60 hover:bg-amber-500/15"
+                                        : "border-sky-300/30 bg-sky-500/10 text-sky-100 hover:border-sky-200/60 hover:bg-sky-500/15";
+                                const canFocus = event.line !== null;
+
+                                return (
+                                  <button
+                                    key={event.id}
+                                    type="button"
+                                    onClick={() => focusRuntimeEvent(event)}
+                                    data-testid={event.testId}
+                                    className={`w-full rounded border px-2 py-2 text-left font-mono text-sm transition ${toneClass} ${canFocus ? "cursor-pointer" : "cursor-default"}`}
+                                  >
+                                    <div className="grid grid-cols-[auto_minmax(0,1fr)_56px_auto] items-center gap-2">
+                                      <span className="rounded border border-white/20 bg-black/20 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em]">
+                                        [{event.category}]
+                                      </span>
+                                      <span className="min-w-0 truncate">{event.message}</span>
+                                      <svg
+                                        className="h-3 w-14 opacity-90"
+                                        viewBox="0 0 56 12"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <line x1="2" y1="6" x2="50" y2="6" stroke="currentColor" strokeWidth="1.2" />
+                                        <path d="M50 2 L54 6 L50 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                      {event.line !== null ? (
+                                        <span className="rounded border border-white/25 bg-black/25 px-1.5 py-0.5 text-[11px]">
+                                          L{event.line}
+                                          {event.column !== null ? `:C${event.column}` : ""}
+                                        </span>
+                                      ) : (
+                                        <span className="rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-zinc-400">N/A</span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
                         </div>
                       )}
 
@@ -1086,53 +1338,6 @@ export function StartupCompilerApp() {
                             : "No output yet. Use LAUNCH MVP or step through execution to produce output."}
                         </div>
                       )}
-
-                      {runtimeTab === "errors" && (
-                        <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20 p-2">
-                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                            Error Arrows
-                          </div>
-                          <div className="space-y-2">
-                            {mappedErrors.length === 0 ? (
-                              <div className="startup-empty rounded px-2 py-1 font-mono text-xs">
-                                No mapped errors. If parser or semantic issues appear, jump links show up here.
-                              </div>
-                            ) : (
-                              mappedErrors.map((entry) => (
-                                <button
-                                  key={entry.key}
-                                  type="button"
-                                  onClick={() => {
-                                    focusSourceLocation(entry.line, entry.column);
-                                    setBottomTab("tokens");
-                                  }}
-                                  data-testid={`runtime-error-${entry.kind}-${entry.line}-${entry.column ?? 0}`}
-                                  className="w-full rounded border border-rose-300/30 bg-rose-500/10 px-2 py-2 text-left font-mono text-sm text-rose-200 transition hover:border-rose-200/60 hover:bg-rose-500/15"
-                                >
-                                  <div className="grid grid-cols-[minmax(0,1fr)_56px_auto] items-center gap-2">
-                                    <div className="min-w-0 truncate">
-                                      <span className="text-rose-300">[{entry.kind.toUpperCase()}]</span> {entry.label}
-                                    </div>
-                                    <svg
-                                      className="h-3 w-14 text-rose-300/90"
-                                      viewBox="0 0 56 12"
-                                      fill="none"
-                                      aria-hidden="true"
-                                    >
-                                      <line x1="2" y1="6" x2="50" y2="6" stroke="currentColor" strokeWidth="1.2" />
-                                      <path d="M50 2 L54 6 L50 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                    <span className="rounded border border-rose-300/35 bg-rose-400/10 px-1.5 py-0.5 text-[11px] text-rose-200">
-                                      L{entry.line}
-                                      {entry.column !== null ? `:C${entry.column}` : ""}
-                                    </span>
-                                  </div>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -1140,10 +1345,8 @@ export function StartupCompilerApp() {
                     <div className="startup-panel-enter flex h-full min-h-0 flex-col gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         {[
-                          { id: "cap", label: "Cap Table" },
+                          { id: "state", label: "State" },
                           { id: "scope", label: "Scope Stack" },
-                          { id: "types", label: "Type Check" },
-                          { id: "explain", label: "Explainability" },
                         ].map((tab) => (
                           <button
                             key={tab.id}
@@ -1158,41 +1361,56 @@ export function StartupCompilerApp() {
 
                       <div className="min-h-0 flex-1">
                         <div className="h-full min-h-0 overflow-hidden rounded-xl border border-white/10 bg-black/20 p-2">
-                          {statePaneTab === "cap" && (
-                            <div className="h-full min-h-0 overflow-auto">
-                              <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                                Runtime Cap Table
+                          {statePaneTab === "state" && (
+                            <div className="flex h-full min-h-0 flex-col gap-3">
+                              <div className="min-h-0 flex-1">
+                                <TypeCheckPanel
+                                  embedded
+                                  view="types"
+                                  entries={pipeline.semantic.entries}
+                                  issues={pipeline.semantic.issues}
+                                  logs={pipeline.semantic.logs}
+                                  onIssueSelect={(line, column) => {
+                                    focusSourceLocation(line, column);
+                                    setBottomTab("tokens");
+                                  }}
+                                />
                               </div>
-                              <table className="w-full text-left font-mono text-sm text-zinc-100">
-                                <thead className="border-b border-white/10 text-zinc-500">
-                                  <tr>
-                                    <th className="px-2 py-2">Name</th>
-                                    <th className="px-2 py-2">Type</th>
-                                    <th className="px-2 py-2">Value</th>
-                                    <th className="px-2 py-2">Lvl</th>
-                                    <th className="px-2 py-2">Offset</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {activeStep ? (
-                                    symbolRows.map((row) => (
-                                      <tr key={row.name} className="border-b border-white/5 last:border-0">
-                                        <td className="px-2 py-2">{row.name}</td>
-                                        <td className="px-2 py-2">{row.info.type}</td>
-                                        <td className="px-2 py-2">{String(row.info.value)}</td>
-                                        <td className="px-2 py-2 text-zinc-500">{row.level}</td>
-                                        <td className="px-2 py-2 text-zinc-500">{row.offset}</td>
-                                      </tr>
-                                    ))
-                                  ) : (
+                              <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20">
+                                <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                                  Runtime Cap Table
+                                </div>
+                                <table className="w-full text-left font-mono text-sm text-zinc-100">
+                                  <thead className="border-b border-white/10 text-zinc-500">
                                     <tr>
-                                      <td className="px-2 py-2 text-zinc-500" colSpan={5}>
-                                        No variables yet. Execute at least one step to populate runtime state.
-                                      </td>
+                                      <th className="px-2 py-2">Name</th>
+                                      <th className="px-2 py-2">Type</th>
+                                      <th className="px-2 py-2">Value</th>
+                                      <th className="px-2 py-2">Lvl</th>
+                                      <th className="px-2 py-2">Offset</th>
                                     </tr>
-                                  )}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {activeStep ? (
+                                      symbolRows.map((row) => (
+                                        <tr key={row.name} className="border-b border-white/5 last:border-0">
+                                          <td className="px-2 py-2">{row.name}</td>
+                                          <td className="px-2 py-2">{row.info.type}</td>
+                                          <td className="px-2 py-2">{String(row.info.value)}</td>
+                                          <td className="px-2 py-2 text-zinc-500">{row.level}</td>
+                                          <td className="px-2 py-2 text-zinc-500">{row.offset}</td>
+                                        </tr>
+                                      ))
+                                    ) : (
+                                      <tr>
+                                        <td className="px-2 py-2 text-zinc-500" colSpan={5}>
+                                          No variables yet. Execute at least one step to populate runtime state.
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
                           )}
 
@@ -1202,38 +1420,6 @@ export function StartupCompilerApp() {
                             </div>
                           )}
 
-                          {statePaneTab === "types" && (
-                            <div className="h-full min-h-0 overflow-auto">
-                              <TypeCheckPanel
-                                embedded
-                                view="types"
-                                entries={pipeline.semantic.entries}
-                                issues={pipeline.semantic.issues}
-                                logs={pipeline.semantic.logs}
-                                onIssueSelect={(line, column) => {
-                                  focusSourceLocation(line, column);
-                                  setBottomTab("tokens");
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          {statePaneTab === "explain" && (
-                            <div className="h-full min-h-0 overflow-auto">
-                              <TypeCheckPanel
-                                embedded
-                                view="logs"
-                                entries={pipeline.semantic.entries}
-                                issues={pipeline.semantic.issues}
-                                logs={pipeline.semantic.logs}
-                                explainabilityEvents={explainabilityEvents}
-                                onIssueSelect={(line, column) => {
-                                  focusSourceLocation(line, column);
-                                  setBottomTab("tokens");
-                                }}
-                              />
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

@@ -1,0 +1,527 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 9282 >>
+stream
+BT
+/F1 10 Tf
+50 790 Td
+(Startup Language Documentation) Tj
+0 -14 Td
+(:root {) Tj
+0 -14 Td
+(--ink: #14213d;) Tj
+0 -14 Td
+(--muted: #4f5d75;) Tj
+0 -14 Td
+(--accent: #f77f00;) Tj
+0 -14 Td
+(--paper: #ffffff;) Tj
+0 -14 Td
+(--line: #dde3ea;) Tj
+0 -14 Td
+(--code: #f7f9fc;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(* { box-sizing: border-box; }) Tj
+0 -14 Td
+(body {) Tj
+0 -14 Td
+(margin: 0;) Tj
+0 -14 Td
+(padding: 0;) Tj
+0 -14 Td
+(color: var\(--ink\);) Tj
+0 -14 Td
+(background: var\(--paper\);) Tj
+0 -14 Td
+(font-family: "Georgia", "Times New Roman", serif;) Tj
+0 -14 Td
+(line-height: 1.45;) Tj
+0 -14 Td
+(font-size: 11pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(.page {) Tj
+0 -14 Td
+(width: 100%;) Tj
+0 -14 Td
+(max-width: 820px;) Tj
+0 -14 Td
+(margin: 0 auto;) Tj
+0 -14 Td
+(padding: 44px 40px 56px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(h1, h2, h3 { margin: 0; line-height: 1.2; }) Tj
+0 -14 Td
+(h1 {) Tj
+0 -14 Td
+(font-size: 28pt;) Tj
+0 -14 Td
+(letter-spacing: 0.2px;) Tj
+0 -14 Td
+(margin-bottom: 8px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(h2 {) Tj
+0 -14 Td
+(margin-top: 26px;) Tj
+0 -14 Td
+(margin-bottom: 10px;) Tj
+0 -14 Td
+(font-size: 16pt;) Tj
+0 -14 Td
+(border-bottom: 1px solid var\(--line\);) Tj
+0 -14 Td
+(padding-bottom: 6px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(h3 {) Tj
+0 -14 Td
+(margin-top: 16px;) Tj
+0 -14 Td
+(margin-bottom: 6px;) Tj
+0 -14 Td
+(font-size: 12pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(p { margin: 0 0 10px; color: var\(--muted\); }) Tj
+0 -14 Td
+(.subtitle {) Tj
+0 -14 Td
+(margin-bottom: 4px;) Tj
+0 -14 Td
+(color: var\(--muted\);) Tj
+0 -14 Td
+(font-size: 11pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(.badge {) Tj
+0 -14 Td
+(display: inline-block;) Tj
+0 -14 Td
+(margin-top: 4px;) Tj
+0 -14 Td
+(margin-bottom: 14px;) Tj
+0 -14 Td
+(padding: 3px 10px;) Tj
+0 -14 Td
+(border-radius: 999px;) Tj
+0 -14 Td
+(border: 1px solid var\(--line\);) Tj
+0 -14 Td
+(font-family: "Helvetica", Arial, sans-serif;) Tj
+0 -14 Td
+(font-size: 9pt;) Tj
+0 -14 Td
+(text-transform: uppercase;) Tj
+0 -14 Td
+(letter-spacing: 0.4px;) Tj
+0 -14 Td
+(color: var\(--ink\);) Tj
+0 -14 Td
+(background: #fff;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(table {) Tj
+0 -14 Td
+(width: 100%;) Tj
+0 -14 Td
+(border-collapse: collapse;) Tj
+0 -14 Td
+(margin: 8px 0 12px;) Tj
+0 -14 Td
+(font-size: 10.5pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(th, td {) Tj
+0 -14 Td
+(border: 1px solid var\(--line\);) Tj
+0 -14 Td
+(padding: 7px 9px;) Tj
+0 -14 Td
+(text-align: left;) Tj
+0 -14 Td
+(vertical-align: top;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(th {) Tj
+0 -14 Td
+(background: #f4f7fb;) Tj
+0 -14 Td
+(font-family: "Helvetica", Arial, sans-serif;) Tj
+0 -14 Td
+(font-size: 9.5pt;) Tj
+0 -14 Td
+(letter-spacing: 0.2px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(code {) Tj
+0 -14 Td
+(font-family: "Menlo", "Consolas", monospace;) Tj
+0 -14 Td
+(font-size: 10pt;) Tj
+0 -14 Td
+(background: var\(--code\);) Tj
+0 -14 Td
+(padding: 1px 4px;) Tj
+0 -14 Td
+(border-radius: 3px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(pre {) Tj
+0 -14 Td
+(margin: 8px 0 12px;) Tj
+0 -14 Td
+(background: var\(--code\);) Tj
+0 -14 Td
+(border: 1px solid var\(--line\);) Tj
+0 -14 Td
+(border-left: 4px solid var\(--accent\);) Tj
+0 -14 Td
+(padding: 10px 12px;) Tj
+0 -14 Td
+(overflow: hidden;) Tj
+0 -14 Td
+(white-space: pre-wrap;) Tj
+0 -14 Td
+(line-height: 1.35;) Tj
+0 -14 Td
+(font-size: 9.8pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(ul {) Tj
+0 -14 Td
+(margin-top: 4px;) Tj
+0 -14 Td
+(margin-bottom: 10px;) Tj
+0 -14 Td
+(padding-left: 20px;) Tj
+0 -14 Td
+(color: var\(--muted\);) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(.grid {) Tj
+0 -14 Td
+(display: grid;) Tj
+0 -14 Td
+(grid-template-columns: 1fr 1fr;) Tj
+0 -14 Td
+(gap: 10px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(.note {) Tj
+0 -14 Td
+(border: 1px solid var\(--line\);) Tj
+0 -14 Td
+(border-left: 4px solid var\(--accent\);) Tj
+0 -14 Td
+(background: #fffdf8;) Tj
+0 -14 Td
+(padding: 10px 12px;) Tj
+0 -14 Td
+(color: var\(--ink\);) Tj
+0 -14 Td
+(font-size: 10pt;) Tj
+0 -14 Td
+(margin-top: 8px;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(.footer {) Tj
+0 -14 Td
+(margin-top: 26px;) Tj
+0 -14 Td
+(padding-top: 12px;) Tj
+0 -14 Td
+(border-top: 1px solid var\(--line\);) Tj
+0 -14 Td
+(color: var\(--muted\);) Tj
+0 -14 Td
+(font-size: 9.5pt;) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(@media print {) Tj
+0 -14 Td
+(.page { max-width: none; padding: 0; }) Tj
+0 -14 Td
+(h2, h3, pre, table { page-break-inside: avoid; }) Tj
+0 -14 Td
+(}) Tj
+0 -14 Td
+(Startup Language Documentation) Tj
+0 -14 Td
+(Specification and examples for the .startup DSL compiler playground.) Tj
+0 -14 Td
+(1. Language Purpose) Tj
+0 -14 Td
+(.startup is a compact educational DSL designed to make core compiler stages visible:) Tj
+0 -14 Td
+(lexing, parsing, semantic analysis, IR generation, and runtime execution.) Tj
+0 -14 Td
+(2. Core Rules) Tj
+0 -14 Td
+(Every statement ends with ? \(parser can recover if omitted in some cases\).) Tj
+0 -14 Td
+(Blocks use [ and ], and conditions use \( and \).) Tj
+0 -14 Td
+(Line comments start with // and continue to the end of line.) Tj
+0 -14 Td
+(Strings use double quotes, for example Vibe name ::> "Nova"?.) Tj
+0 -14 Td
+(Booleans are written as VESTED \(true\) and CLIFF \(false\).) Tj
+0 -14 Td
+(Naming convention: variables in camelCase, classes in PascalCase.) Tj
+0 -14 Td
+(3. Keywords and Meaning) Tj
+0 -14 Td
+(Keyword) Tj
+0 -14 Td
+(Meaning) Tj
+0 -14 Td
+(Example) Tj
+0 -14 Td
+(BurnNumber type declarationBurn revenue ::> 120?) Tj
+0 -14 Td
+(VibeString type declarationVibe mission ::> "Launch"?) Tj
+0 -14 Td
+(EquityBoolean type declarationEquity funded ::> VESTED?) Tj
+0 -14 Td
+(PortfolioArray/list type declarationPortfolio goals ::> ["mvp"]?) Tj
+0 -14 Td
+(PIVOTConditional block \(if\)PIVOT \(funded ??? VESTED\) [ ... ]) Tj
+0 -14 Td
+(SPRINTLoop block \(while\)SPRINT \(count <<< 3\) [ ... ]) Tj
+0 -14 Td
+(PITCHOutput/print a valuePITCH revenue?) Tj
+0 -14 Td
+(ACQUIRERead input from runtimeACQUIRE founderName?) Tj
+0 -14 Td
+(CLASSDeclare a classCLASS Startup?) Tj
+0 -14 Td
+(METHODDeclare a class methodMETHOD plan\(\) [ ... ]) Tj
+0 -14 Td
+(CALLCall a methodCALL planner.plan\(\)?) Tj
+0 -14 Td
+(NEWCreate a class instanceVibe app ::> NEW Startup?) Tj
+0 -14 Td
+(ANDLogical conjunctionready AND funded) Tj
+0 -14 Td
+(ORLogical disjunctionready OR funded) Tj
+0 -14 Td
+(NOTLogical negationNOT funded) Tj
+0 -14 Td
+(VESTEDBoolean literal trueEquity ok ::> VESTED?) Tj
+0 -14 Td
+(CLIFFBoolean literal falseEquity ok ::> CLIFF?) Tj
+0 -14 Td
+(EXITTerminate executionEXIT?) Tj
+0 -14 Td
+(4. Data Types) Tj
+0 -14 Td
+(Type) Tj
+0 -14 Td
+(Meaning) Tj
+0 -14 Td
+(Example) Tj
+0 -14 Td
+(Burn) Tj
+0 -14 Td
+(Numeric value \(integer or decimal\)) Tj
+0 -14 Td
+(Burn runway ::> 18?) Tj
+0 -14 Td
+(Vibe) Tj
+0 -14 Td
+(String value) Tj
+0 -14 Td
+(Vibe mission ::> "Build calm tools"?) Tj
+0 -14 Td
+(Equity) Tj
+0 -14 Td
+(Boolean value using VESTED/CLIFF) Tj
+0 -14 Td
+(Equity funded ::> VESTED?) Tj
+0 -14 Td
+(Portfolio) Tj
+0 -14 Td
+(List/array value) Tj
+0 -14 Td
+(Portfolio milestones ::> ["mvp", "beta"]?) Tj
+0 -14 Td
+(5. Statements) Tj
+0 -14 Td
+(Construct) Tj
+0 -14 Td
+(Syntax) Tj
+0 -14 Td
+(Description) Tj
+0 -14 Td
+(Declaration) Tj
+0 -14 Td
+(Burn x ::> 10?) Tj
+0 -14 Td
+(Declares and initializes a variable.) Tj
+0 -14 Td
+(Assignment) Tj
+0 -14 Td
+(x ::> x +++ 1?) Tj
+0 -14 Td
+(Updates an existing variable.) Tj
+0 -14 Td
+(Conditional) Tj
+0 -14 Td
+(PIVOT \(x >>> 5\) [ ... ]) Tj
+0 -14 Td
+(Runs block when condition evaluates true.) Tj
+0 -14 Td
+(Loop) Tj
+0 -14 Td
+(SPRINT \(x <<< 10\) [ ... ]) Tj
+0 -14 Td
+(Repeats block while condition remains true.) Tj
+0 -14 Td
+(Output) Tj
+0 -14 Td
+(PITCH x?) Tj
+0 -14 Td
+(Prints expression value to runtime output.) Tj
+0 -14 Td
+(Input) Tj
+0 -14 Td
+(ACQUIRE founderName?) Tj
+0 -14 Td
+(Reads runtime input value.) Tj
+0 -14 Td
+(Class declaration) Tj
+0 -14 Td
+(CLASS Startup?) Tj
+0 -14 Td
+(Declares a class in runtime symbol space.) Tj
+0 -14 Td
+(Instantiation) Tj
+0 -14 Td
+(Vibe app ::> NEW Startup?) Tj
+0 -14 Td
+(Creates an instance of a class.) Tj
+0 -14 Td
+(6. Operators and Delimiters) Tj
+0 -14 Td
+(Core operators) Tj
+0 -14 Td
+(::> assignment) Tj
+0 -14 Td
+(+++ --- ****** /// arithmetic) Tj
+0 -14 Td
+(>>> <<< ??? !!? comparison) Tj
+0 -14 Td
+(AND OR NOT logical) Tj
+0 -14 Td
+(Delimiters) Tj
+0 -14 Td
+([ ] block delimiters) Tj
+0 -14 Td
+(\( \) expression grouping) Tj
+0 -14 Td
+(? statement terminator) Tj
+0 -14 Td
+(// ... line comments) Tj
+0 -14 Td
+(7. Recovery Aliases) Tj
+0 -14 Td
+(The tokenizer normalizes shorthand tokens to canonical syntax for resilience:) Tj
+0 -14 Td
+(Accepted input) Tj
+0 -14 Td
+(Canonical token) Tj
+0 -14 Td
+(~::>) Tj
+0 -14 Td
+(++++) Tj
+0 -14 Td
+(----) Tj
+0 -14 Td
+(*******) Tj
+0 -14 Td
+(////) Tj
+0 -14 Td
+(.?) Tj
+0 -14 Td
+(8. Example Program) Tj
+0 -14 Td
+(CLASS Startup?) Tj
+0 -14 Td
+(Burn runway ::> 6?) Tj
+0 -14 Td
+(Equity urgent ::> runway <<< 9?) Tj
+0 -14 Td
+(Vibe product ::> NEW Startup?) Tj
+0 -14 Td
+(PIVOT \(urgent ??? VESTED\) [) Tj
+0 -14 Td
+(PITCH "Raise now"?) Tj
+0 -14 Td
+(]) Tj
+0 -14 Td
+(PITCH product?) Tj
+0 -14 Td
+(9. Compiler Pipeline) Tj
+0 -14 Td
+(Tokenizer: emits token stream and panic recoveries.) Tj
+0 -14 Td
+(Parser: constructs AST with node spans and trace.) Tj
+0 -14 Td
+(Semantic analysis: performs type checks and symbol validation.) Tj
+0 -14 Td
+(IR generation: emits instruction-like representation.) Tj
+0 -14 Td
+(Execution: walks AST and records timeline snapshots.) Tj
+0 -14 Td
+(Phrase-level parser recovery can auto-insert missing ? in recoverable contexts,) Tj
+0 -14 Td
+(while panic mode can skip invalid lexemes and continue compilation.) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000317 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+9650
+%%EOF

@@ -99,6 +99,10 @@ class Parser {
       return this.parseClass();
     }
 
+    if (token.type === "KEYWORD" && token.value === "CALL") {
+      return this.parseCall();
+    }
+
     if (token.type === "KEYWORD" && token.value === "PIVOT") {
       return this.parseIf();
     }
@@ -720,7 +724,33 @@ class Parser {
     const classToken = this.consume("KEYWORD", "CLASS");
     const name = this.consume("IDENTIFIER");
     this.validatePascalCase(name);
-    this.consumeStatementTerminatorWithRecovery(startToken, `CLASS declaration '${name.value}'`);
+
+    const methods: ASTNode[] = [];
+    let rule = "Class -> CLASS IDENTIFIER ?";
+    let description = `Built CLASS '${name.value}'`;
+
+    if (this.match("DELIMITER", "[")) {
+      while (!this.check("DELIMITER", "]") && !this.isAtEnd()) {
+        if (!this.check("KEYWORD", "METHOD")) {
+          const token = this.peek();
+          throw new ParserError(
+            `Expected METHOD declaration in CLASS body, found '${token?.value ?? "end of input"}'`,
+            {
+              line: token?.line ?? classToken.line,
+              column: token?.column ?? 1,
+              startToken: this.position,
+            },
+          );
+        }
+
+        methods.push(this.parseMethodDeclaration());
+      }
+      this.consume("DELIMITER", "]");
+      rule = "Class -> CLASS IDENTIFIER [ Method* ]";
+      description = `Built CLASS '${name.value}' with ${methods.length} method(s)`;
+    } else {
+      this.consumeStatementTerminatorWithRecovery(startToken, `CLASS declaration '${name.value}'`);
+    }
 
     const node: ASTNode = {
       id: this.makeNodeId("class"),
@@ -729,13 +759,94 @@ class Parser {
       startToken,
       endToken: this.position - 1,
       value: { name: name.value },
+      children: methods,
     };
 
     this.pushTrace({
       phase: "node",
-      rule: "Class -> CLASS IDENTIFIER ?",
-      description: `Built CLASS '${name.value}'`,
+      rule,
+      description,
       line: classToken.line,
+      startToken,
+      endToken: this.position - 1,
+      nodeId: node.id,
+    });
+
+    return node;
+  }
+
+  private parseMethodDeclaration(): ASTNode {
+    const startToken = this.position;
+    const methodToken = this.consume("KEYWORD", "METHOD");
+    const name = this.consume("IDENTIFIER");
+    this.validateCamelCase(name);
+    this.consume("DELIMITER", "(");
+    this.consume("DELIMITER", ")");
+    this.consume("DELIMITER", "[");
+
+    const children: ASTNode[] = [];
+    while (!this.check("DELIMITER", "]") && !this.isAtEnd()) {
+      const statement = this.parseStatement();
+      if (statement) {
+        children.push(statement);
+      }
+    }
+    this.consume("DELIMITER", "]");
+
+    const node: ASTNode = {
+      id: this.makeNodeId("method"),
+      type: "Method",
+      line: methodToken.line,
+      startToken,
+      endToken: this.position - 1,
+      value: { name: name.value },
+      children,
+    };
+
+    this.pushTrace({
+      phase: "node",
+      rule: "Method -> METHOD IDENTIFIER ( ) [ Statement* ]",
+      description: `Built METHOD '${name.value}' with ${children.length} statement(s)`,
+      line: methodToken.line,
+      startToken,
+      endToken: this.position - 1,
+      nodeId: node.id,
+    });
+
+    return node;
+  }
+
+  private parseCall(): ASTNode {
+    const startToken = this.position;
+    const callToken = this.consume("KEYWORD", "CALL");
+    const instance = this.consume("IDENTIFIER");
+    this.validateCamelCase(instance);
+    const method = this.consume("IDENTIFIER");
+    this.validateCamelCase(method);
+    this.consume("DELIMITER", "(");
+    this.consume("DELIMITER", ")");
+    this.consumeStatementTerminatorWithRecovery(
+      startToken,
+      `CALL '${instance.value}.${method.value}()' statement`,
+    );
+
+    const node: ASTNode = {
+      id: this.makeNodeId("call"),
+      type: "Call",
+      line: callToken.line,
+      startToken,
+      endToken: this.position - 1,
+      value: {
+        instanceName: instance.value,
+        methodName: method.value,
+      },
+    };
+
+    this.pushTrace({
+      phase: "node",
+      rule: "Call -> CALL IDENTIFIER IDENTIFIER ( ) ?",
+      description: `Built CALL '${instance.value}.${method.value}()'`,
+      line: callToken.line,
       startToken,
       endToken: this.position - 1,
       nodeId: node.id,

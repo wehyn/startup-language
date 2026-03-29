@@ -14,17 +14,21 @@ import {
   ValueType,
   isAcquireNode,
   isAssignmentNode,
+  isCallNode,
   isClassNode,
   isDeclarationNode,
   isExitNode,
   isIfNode,
   isLoopNode,
+  isMethodNode,
   isPitchNode,
 } from "./types";
 
 type RuntimeState = {
   variables: Record<string, VariableState>;
   classes: Set<string>;
+  classMethods: Record<string, Record<string, ASTNode>>;
+  objectBindings: Record<string, string>;
   timeline: Timeline;
   stepCounter: number;
   output: string[];
@@ -312,6 +316,11 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       type: node.value.variableType,
       value,
     };
+    if (node.value.expression.kind === "NewExpr") {
+      state.objectBindings[node.value.name] = node.value.expression.className;
+    } else {
+      delete state.objectBindings[node.value.name];
+    }
     syncScopeVariable(state, node.value.name);
     pushStep(state, node, `[EXEC] Declaring ${node.value.name} = ${formatRuntimeValue(value)}`);
     return;
@@ -319,7 +328,21 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
 
   if (isClassNode(node)) {
     state.classes.add(node.value.name);
-    pushStep(state, node, `[EXEC] Registering CLASS ${node.value.name}`);
+    const methods: Record<string, ASTNode> = state.classMethods[node.value.name] ?? {};
+    for (const child of node.children ?? []) {
+      if (!isMethodNode(child)) {
+        continue;
+      }
+
+      methods[child.value.name] = child;
+    }
+    state.classMethods[node.value.name] = methods;
+
+    pushStep(
+      state,
+      node,
+      `[EXEC] Registering CLASS ${node.value.name} (${Object.keys(methods).length} method(s))`,
+    );
     return;
   }
 
@@ -335,8 +358,53 @@ const executeNode = (node: ASTNode, state: RuntimeState) => {
       type: targetType,
       value,
     };
+    if (node.value.expression.kind === "NewExpr") {
+      state.objectBindings[node.value.name] = node.value.expression.className;
+    } else {
+      delete state.objectBindings[node.value.name];
+    }
     syncScopeVariable(state, node.value.name);
     pushStep(state, node, `[EXEC] Assigning ${node.value.name} = ${formatRuntimeValue(value)}`);
+    return;
+  }
+
+  if (isCallNode(node)) {
+    if (!state.variables[node.value.instanceName]) {
+      throw new Error(`CALL target '${node.value.instanceName}' is undefined at line ${node.line}`);
+    }
+
+    const className = state.objectBindings[node.value.instanceName];
+    if (!className) {
+      throw new Error(`CALL target '${node.value.instanceName}' is not an object instance at line ${node.line}`);
+    }
+
+    const methods = state.classMethods[className];
+    if (!methods) {
+      throw new Error(`CALL class '${className}' is not registered at line ${node.line}`);
+    }
+
+    const methodNode = methods[node.value.methodName];
+    if (!methodNode || !isMethodNode(methodNode)) {
+      throw new Error(
+        `CALL method '${node.value.methodName}' is undefined on class '${className}' at line ${node.line}`,
+      );
+    }
+
+    pushFrame(state, `CALL ${node.value.instanceName}.${node.value.methodName} @L${node.line}`, node.line);
+    pushScope(state, `CALL scope @L${node.line}`, node.line);
+    pushStep(state, node, `[EXEC] CALL ${node.value.instanceName}.${node.value.methodName}()`);
+
+    for (const statement of methodNode.children ?? []) {
+      executeNode(statement, state);
+      if (state.halted) {
+        popFrame(state);
+        popScope(state);
+        return;
+      }
+    }
+
+    popFrame(state);
+    popScope(state);
     return;
   }
 
@@ -485,6 +553,22 @@ const buildIRForNode = (node: ASTNode, instructions: IRInstruction[]) => {
 
   if (isClassNode(node)) {
     emit("CLASS", [node.value.name]);
+    for (const methodNode of node.children ?? []) {
+      if (!isMethodNode(methodNode)) {
+        continue;
+      }
+
+      emit("METHOD", [node.value.name, methodNode.value.name]);
+      for (const statement of methodNode.children ?? []) {
+        buildIRForNode(statement, instructions);
+      }
+      emit("END_METHOD", [node.value.name, methodNode.value.name]);
+    }
+    return;
+  }
+
+  if (isCallNode(node)) {
+    emit("CALL", [node.value.instanceName, node.value.methodName]);
     return;
   }
 
@@ -534,6 +618,8 @@ export const executeAst = (ast: ASTNode): { timeline: Timeline; ir: IRInstructio
   const state: RuntimeState = {
     variables: {},
     classes: new Set<string>(),
+    classMethods: {},
+    objectBindings: {},
     timeline: [],
     stepCounter: 1,
     output: [],

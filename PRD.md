@@ -1,442 +1,337 @@
+# Master PRD v3: Project `startup`
+
+**Status:** Implementation Aligned  
+**Project Lead:** Wayne  
+**Platform:** Next.js (App Router, client-side compiler pipeline)  
+**Objective:** Build an explicit, synchronized visual compiler for `.startup` where **lexing, parsing, semantic analysis, IR, and execution timeline** are inspectable and step-traceable.
 
 ---
 
-# 🔥 Master PRD v2: Project “startup”
+## I. Product Definition
 
-**Status:** Implementation Ready
-**Project Lead:** Wayne
-**Platform:** Next.js (Client-Side)
-**Objective:** Build a visual compiler system that makes **Lexical → Syntax → Execution** transformations explicit, synchronized, and step-traceable.
+### 1. Primary Goal
+
+Make compiler stages visible and connected:
+
+```text
+SOURCE -> TOKENS -> AST -> SEMANTIC -> IR -> EXECUTION
+```
+
+Every execution step must keep UI surfaces synchronized (editor line, token range, AST node, runtime log, state snapshot).
+
+### 2. Success Criteria
+
+- User can edit `.startup` source and see updated tokens, AST, semantic diagnostics, IR, and execution timeline.
+- User can step backward/forward through timeline snapshots deterministically.
+- Error and diagnostic navigation can jump user back to source location.
+- Token <-> AST <-> source highlighting works bidirectionally.
 
 ---
 
-# I. Core System Definition
+## II. Language: `.startup` (Current Implemented Spec)
 
-## 1. Language: `.startup` (Custom Minimal DSL)
+### 1. Data Types
 
-### Supported Constructs (LOCKED)
+- `Burn` (number)
+- `Vibe` (string)
+- `Equity` (boolean: `VESTED`/`CLIFF`)
+- `Portfolio` (array/list)
+
+### 2. Statements
+
+- Declaration  
+  `Burn x ::> 10?`
+- Assignment  
+  `x ::> x +++ 1?`
+- Conditional  
+  `PIVOT (x >>> 5) [ ... ]`
+- Loop  
+  `SPRINT (x <<< 10) [ ... ]`
+- Output  
+  `PITCH x?`
+- Input  
+  `ACQUIRE founderName?` (or `ACQUIRE?`)
+- Exit  
+  `EXIT?`
+- Class declaration  
+  `CLASS Startup?`
+- Instantiation expression  
+  `Vibe obj ::> NEW Startup?`
+
+### 3. Operators and Syntax
+
+- Assignment: `::>`
+- Arithmetic: `+++`, `---`, `******`, `///`
+- Comparison: `>>>`, `<<<`, `???`, `!!?`
+- Logic: `AND`, `OR`, `NOT`
+- Block delimiters: `[ ]`
+- Grouping: `( )`
+- Terminator: `?`
+- Line comments: `// ...`
+- Naming convention:
+  - variables: camelCase
+  - classes: PascalCase
+
+### 4. Recovery Aliases (Accepted Input Forms)
+
+The tokenizer/parser currently normalizes:
+- `~` -> `::>`
+- `+` -> `+++`
+- `-` -> `---`
+- `*` -> `******`
+- `/` -> `///`
+- `.` -> `?`
+
+These are accepted for resilience and normalized into canonical DSL tokens.
+
+---
+
+## III. Compiler Pipeline Contract
+
+### 1. Source -> Tokens (Lexical)
+
+- Produces token stream with `type`, `value`, `line`, `column`.
+- Token types: `KEYWORD`, `IDENTIFIER`, `LITERAL`, `OPERATOR`, `DELIMITER`, `INVALID`.
+- Includes panic-mode token recovery trace for invalid lexemes.
+
+### 2. Tokens -> AST (Syntax)
+
+- Parser builds AST with node IDs and token spans.
+- Node types include:
+  - `Program`, `Declaration`, `Assignment`, `Class`, `If`, `Loop`, `Pitch`, `Acquire`, `Exit`, `BinaryExpr`.
+- Includes parser trace events (node builds + recoveries).
+
+### 3. AST -> Semantic
+
+- Type inference/validation for declarations, assignments, expressions, conditions.
+- Symbol table tracking.
+- Semantic issues and explainability logs generated.
+
+### 4. AST -> IR
+
+- Intermediate representation emitted before execution.
+- Includes opcode, args, source line metadata.
+
+### 5. AST Walk -> Execution Timeline
+
+- Execution traverses AST top-level children and nested blocks.
+- Each meaningful action emits one `ExecutionStep`.
+- Runtime state snapshots include variables, stack, scope frames, output.
+
+---
+
+## IV. Error Handling and Recovery
+
+### 1. Tokenizer Recovery
+
+- Panic-mode recovery: invalid token/literal is recorded, parser continues where possible.
+
+### 2. Parser Recovery
+
+- Phrase-level recovery: missing `?` can be inserted logically.
+- Panic-mode for invalid tokens in expressions/statements where possible.
+
+### 3. Diagnostics Surfaces
+
+Diagnostics are split by stage:
+- Tokenizer
+- Parser
+- Semantic
+- Runtime
+
+Each diagnostic can be mapped to source location (line/column) and surfaced in UI navigation.
+
+---
+
+## V. UI Architecture (Current)
+
+## Layout
+
+- Full-screen shell with:
+  - Top controls/header tabs
+  - Main pipeline workspace
+  - Bottom tabbed inspection area
+
+### 1. Header Tabs
+
+- Pipeline workspace
+- Quick reference ("Founder’s Playbook")
+
+### 2. Pipeline Workspace
+
+- Timeline controls (run + step prev/next)
+- Diagnostics summary row
+- Main split:
+  - Editor panel (Monaco, custom `startup` language)
+  - AST panel (React Flow)
+
+### 3. Bottom Tabbed Area
+
+- Runtime (events/output/errors)
+- Tokens
+- Parser trace
+- State + Scope
+- IR + Stack
+
+### 4. State + Scope Subtabs
+
+- Cap Table (runtime variables)
+- Scope Stack
+- Type Check
+- Explainability logs
+
+---
+
+## VI. Synchronization Contract
+
+At any active timeline step:
+
+- Editor highlights active execution line.
+- Token panel highlights active/selected token range.
+- AST highlights active/selected node.
+- Runtime events show cumulative logs up to current step.
+- State views reflect snapshot at current step (not recomputed from scratch).
+- IR panel highlights by active source line when applicable.
+
+Desync between these surfaces is a product defect.
+
+---
+
+## VII. Preloaded Demo Program (Current)
 
 ```startup
-Burn x ::> 10?
-Burn y ::> x +++ 5?
+BURN runway ::> 18?
+VIBE mission ::> "Build calm tools"?
+EQUITY vested ::> VESTED?
+BURN focus ::> 100?
 
-PIVOT (x >>> 5) [
-  Burn z ::> 1?
-]
-
-SPRINT (x <<< 10) [
-  x ::> x +++ 1?
-]
-```
-
-### Features:
-
-* Variable declaration (`Burn`)
-* Assignment (`::>`)
-* Arithmetic (`+++`, `---`, `******`, `///`)
-* Comparison (`>>>`, `<<<`, `???`, `!!?`)
-* Conditional (`PIVOT`)
-* Loop (`SPRINT`)
-* Terminator (`?`)
-
-👉 No additional features allowed in V1.
-
-### I. Language Specification (The Logic)
-
-- Data Types: Burn (Numeric): Integers or floats representing capital or runway. Vibe (String): Textual values representing branding or mission. Equity (Boolean): Logic states: VESTED (True) or CLIFF (False). Portfolio (Array/List): A collection of heterogeneous data types.
-- Operators & Syntax: Assignment (::>): The Disruptor. Binds values to identifiers. Terminator (?): The Pivot. Mandated for every statement ending. Arithmetic: +++ (Add), --- (Sub), ****** (Mul), /// (Div). Comparison: ??? (Equal), !!? (Not Equal), >>> (Greater), <<< (Less). Logic: AND, OR, NOT. Delimiters: [ ] for code blocks (loops, conditionals). Comments: // ignores all subsequent text on that line. Convention: Strictly camelCase for all variable naming.
-- Control Flow & I/O: PIVOT: Conditional branch (If/Else). SPRINT: Loop structure (While/For). PITCH: Display output to the console. ACQUIRE: Receive user input. EXIT: Terminate program (The "IPO").
-
----
-
-## 2. Execution Model
-
-### ✅ AST-Walk Execution
-
-* Execution traverses AST nodes
-* Each node visit = **one timeline step**
-* All UI elements sync to node execution
-
----
-
-## 3. Compiler Pipeline (Explicitly Visible)
-
-```text
-SOURCE → TOKENS → AST → EXECUTION
-```
-
-### Outputs:
-
-* Tokens (Lexical)
-* AST Graph (Syntax)
-* Timeline + State (Execution)
-
----
-
-# II. UI Architecture (3-Zone Layout)
-
-## Layout Grid
-
-```text
-| Editor (40%) | AST + Tokens (60%) |
-|--------------|--------------------|
-| Console + Timeline (Bottom 30%)  |
+PITCH mission?
+PITCH runway?
+PITCH focus?
 ```
 
 ---
 
-## 1. Editor Panel
-
-* Monaco Editor
-* Preloaded demo code (mandatory)
-* Active line highlighting
-* Monospace font (JetBrains Mono / Fira Code)
-* Font size: 12–13px
-
----
-
-## 2. Pipeline + Visualization Panel
-
-### A. Pipeline Header
-
-```text
-SOURCE → TOKENS → AST → EXECUTION
-```
-
----
-
-### B. Token Panel
-
-Displays token stream:
-
-```text
-[KEYWORD] Burn
-[IDENTIFIER] x
-[OPERATOR] ::>
-[LITERAL] 10
-```
-
-#### Interaction:
-
-* Hover token → highlight code
-* Active phase → emphasized
-
----
-
-### C. AST Graph (React Flow)
-
-#### Rules:
-
-* Nodes = meaningful statements only
-* Edges = control flow
-* Click node → highlight editor line
-* Active node → bright highlight
-
----
-
-## 3. Console + State Panel
-
-### A. Execution Logs
-
-```text
-[EXEC] Declaring x = 10
-[EXEC] Evaluating (x > 5) → true
-```
-
-* Minimal, precise
-* No theatrical narration
-
----
-
-### B. Symbol Table
-
-```text
-Name | Type | Value
-x    | Burn | 10
-y    | Burn | 15
-```
-
----
-
-### C. Timeline Controls
-
-* ◀ Step Back
-* ▶ Step Forward
-* Step indicator:
-
-  ```
-  Step 2 / 6
-  ```
-
----
-
-# III. UI Theme: “Dark Island — Functional Minimal”
-
-## Principle
-
-> Visuals exist only to improve comprehension.
-
----
-
-## Base Colors
-
-* Background: `#0D0D0E`
-* Panel: `rgba(255,255,255,0.04)`
-* Border: `rgba(255,255,255,0.08)`
-* Text Primary: `#FFFFFF`
-* Text Secondary: `#A1A1AA`
-
----
-
-## Semantic Colors
-
-### Tokens
-
-* Keyword → `#60A5FA`
-* Identifier → `#E5E7EB`
-* Literal → `#34D399`
-* Operator → `#F472B6`
-* Delimiter → `#A78BFA`
-
----
-
-### Execution
-
-* Active Node → White highlight
-* Inactive → 40% opacity
-* Active Line → subtle white background
-
----
-
-### Status
-
-* Error → `#F87171`
-
----
-
-## Panels (“Islands” Simplified)
-
-* Border radius: 16px
-* Padding: 16–20px
-* Optional blur: 10–15px
-
----
-
-## Motion Rules
-
-Allowed:
-
-* Fade transitions (150–200ms)
-* Node highlight transitions
-
-Removed:
-
-* Parallax
-* Tilt
-* Audio
-* Decorative animations
-
----
-
-# IV. System Flow
-
-```text
-User Code
-   ↓
-Tokenizer
-   ↓
-Parser → AST
-   ↓
-Execution Engine (AST Walk)
-   ↓
-Timeline Generated
-```
-
----
-
-# V. Data Structures
-
-## 1. Token
+## VIII. Data Structures (Implementation-Aligned)
 
 ```ts
+type TokenType =
+  | "KEYWORD"
+  | "IDENTIFIER"
+  | "LITERAL"
+  | "OPERATOR"
+  | "DELIMITER"
+  | "INVALID";
+
 type Token = {
-  type: 'KEYWORD' | 'IDENTIFIER' | 'LITERAL' | 'OPERATOR' | 'DELIMITER';
+  type: TokenType;
   value: string;
   line: number;
   column: number;
 };
-```
 
----
+type ASTNodeType =
+  | "Program"
+  | "Declaration"
+  | "Assignment"
+  | "Class"
+  | "If"
+  | "Loop"
+  | "Pitch"
+  | "Acquire"
+  | "Exit"
+  | "BinaryExpr";
 
-## 2. AST Node
-
-```ts
 type ASTNode = {
   id: string;
-  type: 'Program' | 'Declaration' | 'Assignment' | 'If' | 'Loop' | 'BinaryExpr';
-  value?: any;
+  type: ASTNodeType;
+  value?: unknown;
   children?: ASTNode[];
   line: number;
+  startToken?: number;
+  endToken?: number;
 };
-```
 
----
+type ValueType = "Burn" | "Vibe" | "Equity" | "Portfolio";
+type RuntimeValue = number | string | boolean | RuntimeValue[];
 
-## 3. Execution Step
+type VariableState = {
+  type: ValueType;
+  value: RuntimeValue;
+};
 
-```ts
+type StackFrame = {
+  id: string;
+  label: string;
+  line: number;
+};
+
+type ScopeEnvironment = {
+  id: string;
+  label: string;
+  level: number;
+  line: number;
+  variables: Record<string, VariableState>;
+};
+
 type ExecutionStep = {
   stepId: number;
   activeNodeId: string;
   line: number;
-  variables: Record<string, {
-    type: 'Burn';
-    value: number;
-  }>;
+  variables: Record<string, VariableState>;
+  stack: StackFrame[];
+  scopes: ScopeEnvironment[];
   log: string;
+  output: string[];
+};
+
+type Timeline = ExecutionStep[];
+
+type IRInstruction = {
+  index: number;
+  line: number;
+  opcode: string;
+  args: string[];
+  note?: string;
 };
 ```
 
 ---
 
-## 4. Timeline
+## IX. Tech Stack
 
-```ts
-type Timeline = ExecutionStep[];
-```
-
----
-
-# VI. Execution Engine (AST-Walk)
-
-### Core Logic
-
-```ts
-function execute(node, state) {
-  switch(node.type) {
-
-    case 'Declaration':
-      // evaluate expression
-      // assign variable
-      // push timeline step
-      break;
-
-    case 'If':
-      // evaluate condition
-      // push step
-      // execute children if true
-      break;
-
-    case 'Loop':
-      // evaluate repeatedly
-      // push step per iteration
-      break;
-  }
-}
-```
+- Next.js (App Router)
+- React + TypeScript
+- Monaco Editor (`@monaco-editor/react`)
+- React Flow (`@xyflow/react`)
+- Tailwind CSS
+- Playwright (E2E tests)
 
 ---
 
-## Rule:
+## X. Guardrails (v3)
 
-👉 Every meaningful action = one timeline step
+### In Scope
 
----
+- Visual compiler learning/inspection workflow
+- Deterministic AST-walk execution timeline
+- Stage-aware diagnostics and source navigation
+- Semantic/type feedback and IR visualization
 
-# VII. Timeline System
+### Out of Scope (for now)
 
-## Behavior
-
-* Forward → next step
-* Backward → previous step
-
----
-
-## State Strategy
-
-✅ Snapshot-based state
-
-* Each step stores full variable state
-* No recomputation
+- Full general-purpose language features (functions/modules/imports)
+- Optimizing compiler backend
+- Persistent project/file management
+- Networked or server-side execution
 
 ---
 
-# VIII. Visual Synchronization Contract
+## XI. Acceptance Checklist
 
-At every step, update:
-
-| Component    | Behavior              |
-| ------------ | --------------------- |
-| Editor       | Highlight active line |
-| AST Graph    | Highlight node        |
-| Console      | Show log              |
-| Symbol Table | Replace with snapshot |
-
-👉 Desync = system failure
-
----
-
-# IX. Preloaded Demo (MANDATORY)
-
-```startup
-Burn x ::> 2?
-Burn y ::> x +++ 3?
-
-PIVOT (y >>> 4) [
-  Burn z ::> y +++ 1?
-]
-```
-
----
-
-# X. Tech Stack
-
-* Next.js (App Router)
-* Monaco Editor
-* React Flow
-* Tailwind CSS
-
----
-
-# XI. Build Order (Non-Negotiable)
-
-## Phase 1
-
-* Tokenizer (even hardcoded initially)
-* Token panel
-
-## Phase 2
-
-* Parser → AST
-* Static AST render
-
-## Phase 3
-
-* Execution engine
-* Timeline generation
-
-## Phase 4
-
-* Step controls
-* UI synchronization
-
----
-
-# Final Verdict
-
-This version is:
-
-* Focused
-* Technically aligned
-* Demo-optimized
-* Actually finishable
-
-If you fail now, it won’t be because this is unclear.
-
-It’ll be because you:
-
-* overbuild again
-* or hesitate to implement
-
----
+- [ ] Source edits recompile full pipeline
+- [ ] Tokens, AST, semantic, IR, execution all render for valid source
+- [ ] Timeline stepping updates all synchronized views
+- [ ] Parser and semantic issues are visible and navigable
+- [ ] Runtime errors map back to source
+- [ ] Preloaded demo executes and shows expected output/state transitions

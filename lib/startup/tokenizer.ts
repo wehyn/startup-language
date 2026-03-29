@@ -31,6 +31,8 @@ const KEYWORD_CANONICAL = new Map<string, string>([
   ["EQUITY", "Equity"],
   ["PORTFOLIO", "Portfolio"],
   ["CLASS", "CLASS"],
+  ["METHOD", "METHOD"],
+  ["CALL", "CALL"],
   ["NEW", "NEW"],
 ]);
 const KEYWORDS = new Set([
@@ -41,6 +43,8 @@ const KEYWORDS = new Set([
   "ACQUIRE",
   "EXIT",
   "CLASS",
+  "METHOD",
+  "CALL",
   "NEW",
   "AND",
   "OR",

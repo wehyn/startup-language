@@ -1,15 +1,16 @@
 import {
   ASTNode,
   BranchValue,
-  ClassValue,
   Expression,
   ExpressionOperator,
   ValueType,
   isAssignmentNode,
+  isCallNode,
   isClassNode,
   isDeclarationNode,
   isIfNode,
   isLoopNode,
+  isMethodNode,
 } from "./types";
 
 export type InferredType = ValueType | "Unknown";
@@ -47,6 +48,8 @@ export type SemanticLogEntry = {
 type ScopeState = {
   symbols: Record<string, ValueType>;
   classes: Set<string>;
+  classMethods: Record<string, Set<string>>;
+  objectBindings: Record<string, string>;
   entries: TypeCheckEntry[];
   issues: SemanticIssue[];
   logs: SemanticLogEntry[];
@@ -222,8 +225,34 @@ const inferBranchCondition = (value: BranchValue, state: ScopeState, line: numbe
 
 const walkNode = (node: ASTNode, state: ScopeState) => {
   if (isClassNode(node)) {
-    const classNode = node.value as ClassValue;
-    state.classes.add(classNode.name);
+    const className = node.value.name;
+    state.classes.add(className);
+    const methodSet = state.classMethods[className] ?? new Set<string>();
+    state.classMethods[className] = methodSet;
+
+    const methods = node.children ?? [];
+    methods.forEach((methodNode) => {
+      if (!isMethodNode(methodNode)) {
+        return;
+      }
+
+      const methodName = methodNode.value.name;
+      if (methodSet.has(methodName)) {
+        state.issues.push({
+          source: "semantic",
+          message: `Duplicate method '${methodName}' in class '${className}'`,
+          line: methodNode.line,
+          column: 1,
+        });
+      } else {
+        methodSet.add(methodName);
+      }
+
+      methodNode.children.forEach((child) => {
+        walkNode(child, state);
+      });
+    });
+
     return;
   }
 
@@ -255,6 +284,11 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
     }
 
     state.symbols[node.value.name] = node.value.variableType;
+    if (node.value.expression.kind === "NewExpr") {
+      state.objectBindings[node.value.name] = node.value.expression.className;
+    } else {
+      delete state.objectBindings[node.value.name];
+    }
     pushSemanticLog(
       state,
       "bind",
@@ -304,6 +338,12 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
       });
     }
 
+    if (node.value.expression.kind === "NewExpr") {
+      state.objectBindings[node.value.name] = node.value.expression.className;
+    } else {
+      delete state.objectBindings[node.value.name];
+    }
+
     pushSemanticLog(
       state,
       "bind",
@@ -311,6 +351,41 @@ const walkNode = (node: ASTNode, state: ScopeState) => {
       node.line,
       1,
     );
+    return;
+  }
+
+  if (isCallNode(node)) {
+    const targetType = state.symbols[node.value.instanceName];
+    if (!targetType) {
+      state.issues.push({
+        source: "semantic",
+        message: `Call target '${node.value.instanceName}' is undefined`,
+        line: node.line,
+        column: 1,
+      });
+      return;
+    }
+
+    const className = state.objectBindings[node.value.instanceName];
+    if (!className) {
+      state.issues.push({
+        source: "semantic",
+        message: `Call target '${node.value.instanceName}' is not an object instance`,
+        line: node.line,
+        column: 1,
+      });
+      return;
+    }
+
+    const methods = state.classMethods[className];
+    if (!methods || !methods.has(node.value.methodName)) {
+      state.issues.push({
+        source: "semantic",
+        message: `Undefined method '${node.value.methodName}' on class '${className}'`,
+        line: node.line,
+        column: 1,
+      });
+    }
     return;
   }
 
@@ -326,6 +401,8 @@ export const analyzeSemantics = (ast: ASTNode): SemanticResult => {
   const state: ScopeState = {
     symbols: {},
     classes: new Set<string>(),
+    classMethods: {},
+    objectBindings: {},
     entries: [],
     issues: [],
     logs: [],
